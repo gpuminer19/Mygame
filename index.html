@@ -876,7 +876,17 @@
     tg.showAlert("📋 Реферальная ссылка скопирована!");
   };
   
-  
+  // ============ ПОДКЛЮЧЕНИЕ К БЭКЕНДУ ============
+const API_URL = "https://script.google.com/macros/s/AKfycbzy7VyTqYT0taVnwAZtapyze2bdbdWamn0LVVGMfgYPkF4TgZD_UvagV9qwGAjiZEFpUA/exec";
+
+// ============ ИНИЦИАЛИЗАЦИЯ TELEGRAM ============
+let tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+// ============ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ============
+let user = tg.initDataUnsafe?.user;
+let userId = user?.id || "test_" + Math.floor(Math.random() * 10000);
   
   // Прячем загрузку, показываем приложение
   document.getElementById("loading").style.display = "none";
