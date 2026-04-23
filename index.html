@@ -260,6 +260,54 @@
     color: transparent;
   }
 
+  .friends-list {
+    margin-top: 16px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .friend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 40px;
+    margin-bottom: 6px;
+  }
+
+  .friend-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #FFB347, #FF8C00);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .friend-info {
+    flex: 1;
+    text-align: left;
+  }
+
+  .friend-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .friend-date {
+    font-size: 9px;
+    color: #8EA3D4;
+  }
+
+  .friend-reward {
+    font-size: 10px;
+    color: #FFB347;
+  }
+
   .ref-link-box {
     background: rgba(0, 0, 0, 0.4);
     margin: 12px 16px;
@@ -334,21 +382,6 @@
     height: 12px;
   }
 
-  .demo-buttons {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 10px;
-  }
-
-  .demo-btn {
-    background: rgba(255, 140, 0, 0.2);
-    width: auto;
-    padding: 4px 12px;
-    font-size: 10px;
-    margin: 0;
-  }
-
   .loading {
     text-align: center;
     padding: 40px;
@@ -396,8 +429,10 @@
     <h3>👥 Приглашено друзей</h3>
     <div class="friend-count" id="friendCount">0</div>
     <div class="badge" style="display:inline-block; margin-top:4px;">5 друзей → 1 TON + 5 GPU | 50 → 10 TON + 50 GPU</div>
-    <div class="demo-buttons">
-      <button class="demo-btn" id="addFriendBtn">➕ +1 друг (тест)</button>
+    
+    <!-- Список приглашённых друзей -->
+    <div class="friends-list" id="friendsList">
+      <div style="text-align:center; padding:10px; color:#6B7CA8;">У вас пока нет приглашённых друзей</div>
     </div>
   </div>
 
@@ -433,8 +468,11 @@
 <div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Подключение к Telegram...</div>
 
 <script>
-  // Глобальные переменные
+  // Инициализация Telegram
   let tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  
   let user = null;
   let userId = null;
   
@@ -444,6 +482,7 @@
     gpuTokens: 0,
     friends: 0,
     referrerId: null,
+    invitedFriends: [], // массив приглашённых друзей { id, name, avatar, date }
     gpus: []
   };
 
@@ -455,30 +494,26 @@
     { name: "EPIC GPU", price: 5, tonReward: 6, gpuReward: 10 }
   ];
 
-  // Состояния карт
   let gpuStates = [];
   let refActive = false;
   let refEarnedTon = 0, refEarnedGpu = 0;
   let refTargetTon = 0, refTargetGpu = 0;
   let refInterval = null;
 
-  // Инициализация Telegram
-  tg.ready();
-  tg.expand();
-  
-  // Получаем данные пользователя
+  // Получаем данные пользователя из Telegram
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     user = tg.initDataUnsafe.user;
     userId = user.id;
     document.getElementById("userFirstName").innerText = user.first_name || "Игрок";
+    if (user.last_name) document.getElementById("userFirstName").innerText += " " + user.last_name;
     if (user.username) {
       document.getElementById("userStatus").innerHTML = `@${user.username}`;
     }
-    document.getElementById("avatar").innerText = (user.first_name? user.first_name[0] : "👤");
+    let avatarLetter = (user.first_name ? user.first_name[0] : (user.username ? user.username[0].toUpperCase() : "👤"));
+    document.getElementById("avatar").innerText = avatarLetter;
     document.getElementById("userIdShort").innerText = `#${userId.toString().slice(-5)}`;
     document.getElementById("walletAddress").innerText = `${userId.toString().slice(0,6)}...${userId.toString().slice(-4)}`;
   } else {
-    // Для теста без Telegram
     userId = "test_" + Math.floor(Math.random() * 10000);
     document.getElementById("userFirstName").innerText = "Тестовый игрок";
     document.getElementById("userIdShort").innerText = `#${userId.slice(-5)}`;
@@ -495,15 +530,16 @@
         playerData.gpuTokens = data.gpuTokens || 0;
         playerData.friends = data.friends || 0;
         playerData.referrerId = data.referrerId || null;
+        playerData.invitedFriends = data.invitedFriends || [];
         if (data.gpuStates) gpuStates = data.gpuStates;
         else initGpuStates();
       } catch(e) { initGpuStates(); }
     } else {
       initGpuStates();
-      // Проверка реферального параметра
       checkReferral();
     }
     updateUI();
+    renderFriendsList();
   }
 
   function initGpuStates() {
@@ -529,35 +565,93 @@
     updateRefLink();
   }
 
-  // Реферальная система
+  // Отображение списка приглашённых друзей
+  function renderFriendsList() {
+    const container = document.getElementById("friendsList");
+    if (!container) return;
+    
+    if (playerData.invitedFriends.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div><div style="text-align:center; font-size:11px; color:#6B7CA8;">Поделитесь ссылкой ниже!</div>';
+      return;
+    }
+    
+    container.innerHTML = playerData.invitedFriends.map(friend => `
+      <div class="friend-item">
+        <div class="friend-avatar">${friend.avatar || '👤'}</div>
+        <div class="friend-info">
+          <div class="friend-name">${friend.name}</div>
+          <div class="friend-date">Присоединился: ${friend.date}</div>
+        </div>
+        <div class="friend-reward">+${friend.rewardGiven ? 'бонус получен' : 'ждёт бонус'}</div>
+      </div>
+    `).join('');
+  }
+
+  // Добавление нового приглашённого друга
+  function addInvitedFriend(friendId, friendName, friendAvatar) {
+    // Проверяем, не добавлен ли уже этот друг
+    if (playerData.invitedFriends.some(f => f.id === friendId)) return false;
+    
+    const now = new Date();
+    const dateStr = `${now.getDate()}.${now.getMonth()+1}.${now.getFullYear()}`;
+    
+    playerData.invitedFriends.push({
+      id: friendId,
+      name: friendName,
+      avatar: friendAvatar || '👤',
+      date: dateStr,
+      rewardGiven: true
+    });
+    
+    playerData.friends = playerData.invitedFriends.length;
+    savePlayerData();
+    updateUI();
+    renderFriendsList();
+    updateRefUI();
+    return true;
+  }
+
+  // Реферальная ссылка (исправлено: ваш бот Gputonminer_bot)
   function updateRefLink() {
-    const botUsername = tg.initDataUnsafe?.user ? "CryptoGPUTycoonBot" : "test_bot";
+    const botUsername = "Gputonminer_bot";
     const refLink = `https://t.me/${botUsername}?start=ref_${userId}`;
     document.getElementById("refLink").innerText = refLink;
   }
 
+  // Проверка реферального параметра при входе
   function checkReferral() {
     const urlParams = new URLSearchParams(window.location.search);
     let startParam = urlParams.get('start') || (tg.initDataUnsafe?.start_param);
+    
     if (startParam && startParam.startsWith('ref_')) {
       const referrerId = startParam.replace('ref_', '');
       if (referrerId !== userId && !playerData.referrerId) {
         playerData.referrerId = referrerId;
+        
         // Добавляем бонус новому игроку
         playerData.ton += 1;
         playerData.gpuTokens += 5;
+        
+        // Сохраняем, что этот игрок пришёл по рефералке
         savePlayerData();
         updateUI();
+        
+        // Здесь можно отправить уведомление рефереру через бота
+        // Для этого нужен бэкенд, пока просто сохраняем локально
+        
+        tg.showAlert("🎉 Вы получили бонус 1 TON и 5 GPU за переход по реферальной ссылке!");
       }
     }
   }
 
-  // Добавление друга (вызывается при реферале)
-  function addFriend() {
-    playerData.friends++;
-    updateUI();
-    savePlayerData();
-    updateRefUI();
+  // Функция, которую вызывает реферер, когда кто-то перешёл по его ссылке
+  // (в реальном приложении это должно приходить с сервера)
+  function onFriendJoined(friendId, friendName) {
+    if (addInvitedFriend(friendId, friendName)) {
+      tg.showAlert(`🎉 Новый друг присоединился: ${friendName}!`);
+      // Пересчитываем бонусы за количество друзей
+      updateRefUI();
+    }
   }
 
   // Реферальная карта
@@ -573,8 +667,9 @@
     const rewards = getRefRewards();
 
     if (rewards.ton === 0) {
+      let needed = 5 - playerData.friends;
       container.innerHTML = `<div style="padding:8px; text-align:center; background:rgba(0,0,0,0.3); border-radius:16px; font-size:12px;">
-        🔒 Требуется ${5-playerData.friends} друзей
+        🔒 Требуется ещё ${needed} ${needed === 1 ? 'друг' : (needed < 5 ? 'друга' : 'друзей')} для активации
       </div>`;
       return;
     }
@@ -687,7 +782,6 @@
     updateUI();
     renderCard(idx, 'farm');
 
-    
     let step = 0, steps = 10;
     let incTon = s.totalTon / steps;
     let incGpu = s.totalGpu / steps;
@@ -742,19 +836,40 @@
     document.getElementById(id).classList.add("active");
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    if (id === "referral") updateRefUI();
+    if (id === "referral") {
+      updateRefUI();
+      renderFriendsList();
+    }
   };
+
+  // Демо-функция для тестирования добавления друга
+  function demoAddFriend() {
+    const demoId = "demo_" + Math.floor(Math.random() * 10000);
+    const demoName = "Друг_" + Math.floor(Math.random() * 100);
+    addInvitedFriend(demoId, demoName);
+  }
 
   // Запуск
   loadPlayerData();
   initGrid();
   updateRefUI();
   
-  // Кнопка для тестового добавления друга
-  document.getElementById("addFriendBtn").onclick = () => {
-    addFriend();
-    tg.showAlert(`+1 друг! Теперь у вас ${playerData.friends} друзей`);
-  };
+  // Кнопка для тестового добавления друга (можно убрать в релизе)
+  const addBtn = document.getElementById("addFriendBtn");
+  if (addBtn) {
+    addBtn.onclick = demoAddFriend;
+  } else {
+    // Если кнопки нет, создаём демо-кнопку
+    const refStats = document.querySelector(".ref-stats");
+    if (refStats && !document.getElementById("addFriendBtn")) {
+      const demoDiv = document.createElement("div");
+      demoDiv.className = "demo-buttons";
+      demoDiv.innerHTML = '<button id="addFriendBtn" class="demo-btn" style="background:#FF8C00;">➕ +1 друг (тест)</button>';
+      refStats.appendChild(demoDiv);
+      document.getElementById("addFriendBtn").onclick = demoAddFriend;
+    }
+  }
+  
   document.getElementById("copyRefBtn").onclick = () => {
     const link = document.getElementById("refLink").innerText;
     navigator.clipboard.writeText(link);
@@ -765,7 +880,6 @@
   document.getElementById("loading").style.display = "none";
   document.getElementById("app").style.display = "block";
   
-  // Настройка кнопки назад в шапке Telegram
   tg.MainButton.hide();
   tg.BackButton.hide();
 </script>
