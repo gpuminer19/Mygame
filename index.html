@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>CryptoGPU | Двойной майнинг</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: #0B0E1A;
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    color: #fff;
+    padding-bottom: 80px;
+    min-height: 100vh;
+  }
+
+  /* Анимированный фон */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at 30% 40%, #121936 0%, #070A14 100%);
+    z-index: -2;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 70% 20%, rgba(0, 255, 255, 0.04), transparent 70%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Хедер */
+  .header {
+    background: rgba(8, 12, 24, 0.75);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 16px 20px 20px;
+    border-radius: 0 0 32px 32px;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 46px;
+    height: 46px;
+    background: linear-gradient(135deg, #00D4FF, #0066FF);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 100, 255, 0.4);
+  }
+
+  .logo-icon i {
+    font-size: 26px;
+    color: white;
+  }
+
+  .logo h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FFFFFF, #88AAFF);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.5px;
+  }
+
+  .logo p {
+    font-size: 10px;
+    color: #6B7CA8;
+    letter-spacing: 0.5px;
+  }
+
+  /* Баланс - двойная валюта */
+  .balance-container {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .balance-card {
+    flex: 1;
+    background: linear-gradient(135deg, rgba(0, 50, 100, 0.4), rgba(0, 20, 50, 0.6));
+    border-radius: 24px;
+    padding: 12px 16px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+  }
+
+  .balance-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #8EA3D4;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .balance-value {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .balance-value span {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FFF, #A0C4FF);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .currency-icon {
+    width: 24px;
+    height: 24px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  }
+
+  .gpu-currency {
+    background: linear-gradient(135deg, #FFB347, #FF8C00);
+    border-radius: 30px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #1A1F2E;
+    margin-left: 6px;
+  }
+
+  /* Карточки */
+  .grid {
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card {
+    background: rgba(12, 18, 32, 0.75);
+    backdrop-filter: blur(12px);
+    border-radius: 28px;
+    padding: 14px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .card:active {
+    transform: scale(0.99);
+  }
+
+  .gpu-img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 20px;
+    padding: 10px;
+  }
+
+  .card-info {
+    flex: 1;
+  }
+
+  .card-info h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    background: rgba(0, 212, 255, 0.2);
+    padding: 3px 8px;
+    border-radius: 30px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #00D4FF;
+  }
+
+  .rewards-info {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: #A0B4E0;
+    margin-bottom: 8px;
+  }
+
+  .rewards-info span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  button {
+    background: linear-gradient(95deg, #1A2A5E, #0F1A3A);
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 14px;
+    border-radius: 44px;
+    color: white;
+    width: 100%;
+    margin-top: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+
+  button:active {
+    transform: scale(0.96);
+  }
+
+  .claim-btn {
+    background: linear-gradient(95deg, #008A5C, #00A86B);
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 6px;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00D4FF, #0066FF);
+    border-radius: 40px;
+    transition: width 0.2s linear;
+  }
+
+  .progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    gap: 4px;
+    text-shadow: 0 1px 2px black;
+  }
+
+  /* Реферальный блок */
+  .ref-stats {
+    background: linear-gradient(135deg, #1A1F35, #11152A);
+    margin: 16px;
+    padding: 18px;
+    border-radius: 32px;
+    text-align: center;
+    border: 1px solid rgba(255, 180, 71, 0.3);
+  }
+
+  .ref-stats h3 {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    color: #FFB347;
+  }
+
+  .friend-count {
+    font-size: 44px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FFB347, #FF8C00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .ref-link-box {
+    background: rgba(0, 0, 0, 0.4);
+    margin: 12px 16px;
+    padding: 10px 16px;
+    border-radius: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(255, 180, 71, 0.3);
+  }
+
+  .ref-link-box span {
+    font-size: 11px;
+    font-family: monospace;
+    color: #FFD699;
+    word-break: break-all;
+  }
+
+  .copy-btn {
+    width: auto;
+    padding: 7px 16px;
+    background: #FF8C00;
+    margin: 0;
+  }
+
+  /* Нижнее меню */
+  .bottom-nav {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: rgba(8, 12, 24, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 44px;
+    display: flex;
+    justify-content: space-around;
+    padding: 5px 8px;
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    z-index: 100;
+  }
+
+  .nav-btn {
+    background: transparent !important;
+    box-shadow: none !important;
+    width: auto !important;
+    padding: 10px 18px !important;
+    font-size: 20px !important;
+    color: #5A6A8A !important;
+    margin: 0 !important;
+  }
+
+  .nav-btn.active {
+    color: #00D4FF !important;
+    background: rgba(0, 212, 255, 0.15) !important;
+  }
+
+  .tab {
+    display: none;
+    animation: fade 0.25s ease;
+  }
+
+  .tab.active {
+    display: block;
+  }
+
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .ton-mini, .gpu-mini {
+    width: 13px;
+    height: 13px;
+  }
+
+  .demo-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .demo-btn {
+    background: rgba(255, 140, 0, 0.2);
+    width: auto;
+    padding: 5px 14px;
+    font-size: 11px;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon"><i class="fa-solid fa-microchip"></i></div>
+      <div><h1>CryptoGPU</h1><p>dual mining</p></div>
+    </div>
+  </div>
+  
+  <div class="balance-container">
+    <div class="balance-card">
+      <div class="balance-label"><i class="fa-regular fa-coins"></i> TON Balance</div>
+      <div class="balance-value">
+        <span id="ton">5.00</span>
+        <img src="ton.png" class="currency-icon">
+      </div>
+    </div>
+    <div class="balance-card">
+      <div class="balance-label"><i class="fa-solid fa-microchip"></i> GPU Tokens</div>
+      <div class="balance-value">
+        <span id="gpuBalance">0</span>
+        <span class="gpu-currency">GPU</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Домашняя вкладка -->
+<div id="home" class="tab active">
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- Реферальная вкладка -->
+<div id="referral" class="tab">
+  <div class="ref-stats">
+    <h3><i class="fa-solid fa-user-group"></i> Приглашено друзей</h3>
+    <div class="friend-count" id="friendCount">0</div>
+    <div class="badge" style="display:inline-block; margin-top:6px; background:#FF8C20; color:#1A1F2E;">10 друзей → 1 TON + 20 GPU | 50 → 10 TON + 200 GPU | 100 → 20 TON + 500 GPU</div>
+    <div class="demo-buttons">
+      <button class="demo-btn" id="addFriendBtn"><i class="fa-solid fa-plus"></i> +1 друг (тест)</button>
+      <button class="demo-btn" id="resetFriendBtn" style="background:rgba(100,100,150,0.2)"><i class="fa-regular fa-trash-can"></i> сброс</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="refCard" style="border-color:#FFB347;">
+      <img src="8.png" class="gpu-img" style="filter:drop-shadow(0 0 8px #FFB347);">
+      <div class="card-info">
+        <h3>⭐ FRIENDS GPU <span class="badge" style="background:#FF8C20; color:#1A1F2E;">легендарная</span></h3>
+        <div id="refStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ref-link-box">
+    <span id="refLink">t.me/CryptoGPU_bot?start=XXX</span>
+    <button class="copy-btn" id="copyRefBtn"><i class="fa-regular fa-copy"></i> Коп</button>
+  </div>
+</div>
+
+<!-- Другие вкладки -->
+<div id="staking" class="tab"><div class="ref-stats"><i class="fa-solid fa-chart-line" style="font-size:48px; color:#00D4FF;"></i><h3 style="margin-top:12px;">Staking Pool</h3><p>Скоро • APR 32%</p></div></div>
+<div id="tasks" class="tab"><div class="ref-stats"><i class="fa-solid fa-list-check" style="font-size:48px; color:#00D4FF;"></i><h3 style="margin-top:12px;">Ежедневные задания</h3><p>Скоро будет доступно</p></div></div>
+<div id="wallet" class="tab"><div class="ref-stats"><i class="fa-solid fa-wallet" style="font-size:48px; color:#00D4FF;"></i><h3 style="margin-top:12px;">TON Wallet</h3><button id="connectWalletBtn" style="margin-top:16px;">Подключить кошелек</button></div></div>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="openTab('home',this)"><i class="fa-solid fa-house"></i></button>
+  <button class="nav-btn" onclick="openTab('referral',this)"><i class="fa-solid fa-user-group"></i></button>
+  <button class="nav-btn" onclick="openTab('staking',this)"><i class="fa-solid fa-coins"></i></button>
+  <button class="nav-btn" onclick="openTab('tasks',this)"><i class="fa-solid fa-list-check"></i></button>
+  <button class="nav-btn" onclick="openTab('wallet',this)"><i class="fa-solid fa-wallet"></i></button>
+</div>
+
+<script>
+  // Валюты
+  let ton = 5.0;
+  let gpuTokens = 0;
+  let friends = 0;
+  
+  // Реф карта состояние
+  let refActive = false;
+  let refEarnedTon = 0;
+  let refEarnedGpu = 0;
+  let refTargetTon = 0;
+  let refTargetGpu = 0;
+  let refInterval = null;
+
+  // Данные GPU с двойной наградой
+  const gpus = [
+    { name: "GTX 1060", price: 0, tonReward: 0.2, gpuReward: 10, totalTon: 0, totalGpu: 0, earnedTon: 0, earnedGpu: 0, active: false },
+    { name: "RTX 2060", price: 5, tonReward: 6, gpuReward: 40, totalTon: 0, totalGpu: 0, earnedTon: 0, earnedGpu: 0, active: false },
+    { name: "RTX 3060", price: 20, tonReward: 24, gpuReward: 200, totalTon: 0, totalGpu: 0, earnedTon: 0, earnedGpu: 0, active: false },
+    { name: "EPIC GPU", price: 50, tonReward: 60, gpuReward: 500, totalTon: 0, totalGpu: 0, earnedTon: 0, earnedGpu: 0, active: false }
+  ];
+
+  function updateBalances() {
+    document.getElementById("ton").innerText = ton.toFixed(2);
+    document.getElementById("gpuBalance").innerText = gpuTokens;
+    localStorage.setItem("tonBalance", ton.toFixed(2));
+    localStorage.setItem("gpuBalance", gpuTokens);
+  }
+
+  function getRefRewards() {
+    if (friends >= 100) return { ton: 20, gpu: 500 };
+    if (friends >= 50) return { ton: 10, gpu: 200 };
+    if (friends >= 10) return { ton: 1, gpu: 20 };
+    return { ton: 0, gpu: 0 };
+  }
+
+  function loadData() {
+    let savedTon = localStorage.getItem("tonBalance");
+    if (savedTon) ton = parseFloat(savedTon);
+    let savedGpu = localStorage.getItem("gpuBalance");
+    if (savedGpu) gpuTokens = parseInt(savedGpu);
+    let savedFriends = localStorage.getItem("refFriends");
+    if (savedFriends) friends = parseInt(savedFriends);
+    document.getElementById("friendCount").innerText = friends;
+    updateBalances();
+    updateRefUI();
+  }
+
+  function saveFriends() {
+    localStorage.setItem("refFriends", friends);
+    document.getElementById("friendCount").innerText = friends;
+  }
+
+  function updateRefUI() {
+    const container = document.getElementById("refStatus");
+    if (!container) return;
+    const rewards = getRefRewards();
+
+    if (rewards.ton === 0) {
+      container.innerHTML = `<div style="padding:10px; text-align:center; background:rgba(0,0,0,0.3); border-radius:20px;">
+        🔒 Требуется ${10-friends} друзей для активации
+      </div>`;
+      return;
+    }
+
+    if (!refActive) {
+      container.innerHTML = `<button id="startRefBtn" style="background:linear-gradient(95deg,#FF8C00,#E07A00);">
+        <i class="fa-solid fa-rocket"></i> Майнить ${rewards.ton} TON + ${rewards.gpu} GPU
+      </button>`;
+      const btn = document.getElementById("startRefBtn");
+      if (btn) btn.onclick = startRefMining;
+    } else {
+      const percent = refTargetTon ? (refEarnedTon / refTargetTon) * 100 : 0;
+      container.innerHTML = `<div class="progress-bar">
+        <div class="progress-fill" id="refFill" style="width:${percent}%"></div>
+        <div class="progress-text" id="refText">${refEarnedTon.toFixed(2)}/${refTargetTon.toFixed(2)} TON + ${refEarnedGpu}/${refTargetGpu} GPU</div>
+      </div>`;
+    }
+
+    if (refActive && refEarnedTon >= refTargetTon - 0.01) finishRefMining();
+  }
+
+  function finishRefMining() {
+    if (refInterval) clearInterval(refInterval);
+    refActive = false;
+    document.getElementById("refStatus").innerHTML = `<button id="claimRefBtn" class="claim-btn">
+      <i class="fa-regular fa-circle-check"></i> Забрать ${refTargetTon.toFixed(2)} TON + ${refTargetGpu} GPU
+    </button>`;
+    const btn = document.getElementById("claimRefBtn");
+    if (btn) btn.onclick = () => {
+      ton += refTargetTon;
+      gpuTokens += refTargetGpu;
+      updateBalances();
+      refEarnedTon = 0;
+      refEarnedGpu = 0;
+      refTargetTon = 0;
+      refTargetGpu = 0;
+      updateRefUI();
+      saveFriends();
+    };
+  }
+
+  function startRefMining() {
+    const rewards = getRefRewards();
+    if (rewards.ton === 0) return;
+    if (refActive) return;
+    refActive = true;
+    refTargetTon = rewards.ton;
+    refTargetGpu = rewards.gpu;
+    refEarnedTon = 0;
+    refEarnedGpu = 0;
+    let step = 0;
+    const steps = 10;
+    const incTon = refTargetTon / steps;
+    const incGpu = refTargetGpu / steps;
+    updateRefUI();
+
+    refInterval = setInterval(() => {
+      if (!refActive) { clearInterval(refInterval); return; }
+      step++;
+      refEarnedTon = Math.min(refEarnedTon + incTon, refTargetTon);
+      refEarnedGpu = Math.min(refEarnedGpu + incGpu, refTargetGpu);
+      const fill = document.getElementById("refFill");
+      const txt = document.getElementById("refText");
+      if (fill) fill.style.width = (refEarnedTon / refTargetTon * 100) + "%";
+      if (txt) txt.innerHTML = `${refEarnedTon.toFixed(2)}/${refTargetTon.toFixed(2)} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU`;
+      if (step >= steps) { clearInterval(refInterval); finishRefMining(); }
+    }, 700);
+  }
+
+  // Обычные карты
+  function renderCard(idx, state) {
+    const card = document.getElementById(`card_${idx}`);
+    if (!card) return;
+    const g = gpus[idx];
+    if (state === 'buy') {
+      card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
+        <h3>${g.name} <span class="badge">+20%</span></h3>
+        <div class="rewards-info">
+          <span><img src="ton.png" class="ton-mini"> +${g.tonReward.toFixed(2)} TON</span>
+          <span><i class="fa-solid fa-microchip"></i> +${g.gpuReward} GPU</span>
+        </div>
+        <button class="buy-btn">Купить ${g.price} <img src="ton.png" class="ton-mini"></button>
+      </div>`;
+      card.querySelector('.buy-btn').onclick = () => buyGPU(idx);
+    } else if (state === 'farm') {
+      card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
+        <h3>${g.name} <span class="badge" style="background:#00D4FF20;">⚡ майнинг</span></h3>
+        <div class="progress-bar"><div class="progress-fill" id="fill_${idx}" style="width:0%"></div><div class="progress-text" id="text_${idx}">0/${g.totalTon.toFixed(2)} TON + 0/${g.totalGpu} GPU</div></div>
+      </div>`;
+    } else {
+      card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
+        <h3>${g.name}</h3>
+        <button class="claim-btn claim-gpu">🎁 Забрать ${g.totalTon.toFixed(2)} TON + ${g.totalGpu} GPU</button>
+      </div>`;
+      card.querySelector('.claim-gpu').onclick = () => claimGPU(idx);
+    }
+  }
+
+  function buyGPU(idx) {
+    const g = gpus[idx];
+    if (ton < g.price) { alert("❌ Недостаточно TON"); return; }
+    if (g.active) { alert("⏳ Карта уже майнит"); return; }
+    ton -= g.price;
+    g.totalTon = g.tonReward;
+    g.totalGpu = g.gpuReward;
+    g.earnedTon = 0;
+    g.earnedGpu = 0;
+    g.active = true;
+    updateBalances();
+    renderCard(idx, 'farm');
+
+    let step = 0, steps = 10;
+    let incTon = g.totalTon / steps;
+    let incGpu = g.totalGpu / steps;
+    let interval = setInterval(() => {
+      if (!g.active) { clearInterval(interval); return; }
+      step++;
+      g.earnedTon = Math.min(g.earnedTon + incTon, g.totalTon);
+      g.earnedGpu = Math.min(g.earnedGpu + incGpu, g.totalGpu);
+      const fill = document.getElementById(`fill_${idx}`);
+      const txt = document.getElementById(`text_${idx}`);
+      if (fill) fill.style.width = (g.earnedTon / g.totalTon * 100) + "%";
+      if (txt) txt.innerHTML = `${g.earnedTon.toFixed(2)}/${g.totalTon.toFixed(2)} TON + ${Math.floor(g.earnedGpu)}/${g.totalGpu} GPU`;
+      if (step >= steps) {
+        clearInterval(interval);
+        g.active = false;
+        renderCard(idx, 'claim');
+      }
+    }, 700);
+  }
+
+  function claimGPU(idx) {
+    const g = gpus[idx];
+    if (g.earnedTon < g.totalTon - 0.01) return;
+    ton += g.totalTon;
+    gpuTokens += g.totalGpu;
+    updateBalances();
+    g.totalTon = 0;
+    g.totalGpu = 0;
+    g.earnedTon = 0;
+    g.earnedGpu = 0;
+    renderCard(idx, 'buy');
+  }
+
+  function initGrid() {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    gpus.forEach((_, i) => {
+      const cardDiv = document.createElement("div");
+      cardDiv.className = "card";
+      cardDiv.id = `card_${i}`;
+      grid.appendChild(cardDiv);
+      renderCard(i, 'buy');
+    });
+  }
+
+  window.openTab = function(id, btn) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    if (id === "referral") updateRefUI();
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initGrid();
+    loadData();
+
+    const refCode = "REF" + Math.floor(Math.random() * 100000);
+    document.getElementById("refLink").innerText = `t.me/CryptoGPU_bot?start=${refCode}`;
+    document.getElementById("copyRefBtn").onclick = () => {
+      navigator.clipboard.writeText(document.getElementById("refLink").innerText);
+      alert("📋 Ссылка скопирована!");
+    };
+
+    document.getElementById("addFriendBtn").onclick = () => {
+      friends++;
+      saveFriends();
+      updateRefUI();
+    };
+    document.getElementById("resetFriendBtn").onclick = () => {
+      friends = 0;
+      saveFriends();
+      if (refActive) { refActive = false; if (refInterval) clearInterval(refInterval); }
+      updateRefUI();
+    };
+    document.getElementById("connectWalletBtn")?.addEventListener("click", () => alert("🔗 Кошелек будет подключен в следующем обновлении"));
+  });
+</script>
+</body>
+</html>
