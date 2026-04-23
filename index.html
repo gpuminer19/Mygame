@@ -430,7 +430,6 @@
     <div class="friend-count" id="friendCount">0</div>
     <div class="badge" style="display:inline-block; margin-top:4px;">5 друзей → 1 TON + 5 GPU | 50 → 10 TON + 50 GPU</div>
     
-    <!-- Список приглашённых друзей -->
     <div class="friends-list" id="friendsList">
       <div style="text-align:center; padding:10px; color:#6B7CA8;">У вас пока нет приглашённых друзей</div>
     </div>
@@ -468,415 +467,7 @@
 <div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Подключение к Telegram...</div>
 
 <script>
-  // Инициализация Telegram
-  let tg = window.Telegram.WebApp;
-  tg.ready();
-  tg.expand();
-  
-  let user = null;
-  let userId = null;
-  
-  // Данные игрока
-  let playerData = {
-    ton: 5.0,
-    gpuTokens: 0,
-    friends: 0,
-    referrerId: null,
-    invitedFriends: [], // массив приглашённых друзей { id, name, avatar, date }
-    gpus: []
-  };
-
-  // Данные GPU
-  const gpuTemplates = [
-    { name: "GTX 1060", price: 1, tonReward: 1.2, gpuReward: 2 },
-    { name: "RTX 2060", price: 2, tonReward: 2.4, gpuReward: 4 },
-    { name: "RTX 3060", price: 3, tonReward: 3.6, gpuReward: 6 },
-    { name: "EPIC GPU", price: 5, tonReward: 6, gpuReward: 10 }
-  ];
-
-  let gpuStates = [];
-  let refActive = false;
-  let refEarnedTon = 0, refEarnedGpu = 0;
-  let refTargetTon = 0, refTargetGpu = 0;
-  let refInterval = null;
-
-  // Получаем данные пользователя из Telegram
-  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-    user = tg.initDataUnsafe.user;
-    userId = user.id;
-    document.getElementById("userFirstName").innerText = user.first_name || "Игрок";
-    if (user.last_name) document.getElementById("userFirstName").innerText += " " + user.last_name;
-    if (user.username) {
-      document.getElementById("userStatus").innerHTML = `@${user.username}`;
-    }
-    let avatarLetter = (user.first_name ? user.first_name[0] : (user.username ? user.username[0].toUpperCase() : "👤"));
-    document.getElementById("avatar").innerText = avatarLetter;
-    document.getElementById("userIdShort").innerText = `#${userId.toString().slice(-5)}`;
-    document.getElementById("walletAddress").innerText = `${userId.toString().slice(0,6)}...${userId.toString().slice(-4)}`;
-  } else {
-    userId = "test_" + Math.floor(Math.random() * 10000);
-    document.getElementById("userFirstName").innerText = "Тестовый игрок";
-    document.getElementById("userIdShort").innerText = `#${userId.slice(-5)}`;
-  }
-
-  // Загрузка данных из localStorage
-  function loadPlayerData() {
-    const key = `cryptogpu_${userId}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        playerData.ton = data.ton || 5;
-        playerData.gpuTokens = data.gpuTokens || 0;
-        playerData.friends = data.friends || 0;
-        playerData.referrerId = data.referrerId || null;
-        playerData.invitedFriends = data.invitedFriends || [];
-        if (data.gpuStates) gpuStates = data.gpuStates;
-        else initGpuStates();
-      } catch(e) { initGpuStates(); }
-    } else {
-      initGpuStates();
-      checkReferral();
-    }
-    updateUI();
-    renderFriendsList();
-  }
-
-  function initGpuStates() {
-    gpuStates = gpuTemplates.map(g => ({
-      active: false,
-      totalTon: 0,
-      totalGpu: 0,
-      earnedTon: 0,
-      earnedGpu: 0
-    }));
-  }
-
-  function savePlayerData() {
-    const key = `cryptogpu_${userId}`;
-    playerData.gpuStates = gpuStates;
-    localStorage.setItem(key, JSON.stringify(playerData));
-  }
-
-  function updateUI() {
-    document.getElementById("ton").innerText = playerData.ton.toFixed(2);
-    document.getElementById("gpuBalance").innerText = playerData.gpuTokens;
-    document.getElementById("friendCount").innerText = playerData.friends;
-    updateRefLink();
-  }
-
-  // Отображение списка приглашённых друзей
-  function renderFriendsList() {
-    const container = document.getElementById("friendsList");
-    if (!container) return;
-    
-    if (playerData.invitedFriends.length === 0) {
-      container.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div><div style="text-align:center; font-size:11px; color:#6B7CA8;">Поделитесь ссылкой ниже!</div>';
-      return;
-    }
-    
-    container.innerHTML = playerData.invitedFriends.map(friend => `
-      <div class="friend-item">
-        <div class="friend-avatar">${friend.avatar || '👤'}</div>
-        <div class="friend-info">
-          <div class="friend-name">${friend.name}</div>
-          <div class="friend-date">Присоединился: ${friend.date}</div>
-        </div>
-        <div class="friend-reward">+${friend.rewardGiven ? 'бонус получен' : 'ждёт бонус'}</div>
-      </div>
-    `).join('');
-  }
-
-  // Добавление нового приглашённого друга
-  function addInvitedFriend(friendId, friendName, friendAvatar) {
-    // Проверяем, не добавлен ли уже этот друг
-    if (playerData.invitedFriends.some(f => f.id === friendId)) return false;
-    
-    const now = new Date();
-    const dateStr = `${now.getDate()}.${now.getMonth()+1}.${now.getFullYear()}`;
-    
-    playerData.invitedFriends.push({
-      id: friendId,
-      name: friendName,
-      avatar: friendAvatar || '👤',
-      date: dateStr,
-      rewardGiven: true
-    });
-    
-    playerData.friends = playerData.invitedFriends.length;
-    savePlayerData();
-    updateUI();
-    renderFriendsList();
-    updateRefUI();
-    return true;
-  }
-
-  // Реферальная ссылка (исправлено: ваш бот Gputonminer_bot)
-  function updateRefLink() {
-    const botUsername = "Gputonminer_bot";
-    const refLink = `https://t.me/${botUsername}?start=ref_${userId}`;
-    document.getElementById("refLink").innerText = refLink;
-  }
-
-  // Проверка реферального параметра при входе
-  function checkReferral() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let startParam = urlParams.get('start') || (tg.initDataUnsafe?.start_param);
-    
-    if (startParam && startParam.startsWith('ref_')) {
-      const referrerId = startParam.replace('ref_', '');
-      if (referrerId !== userId && !playerData.referrerId) {
-        playerData.referrerId = referrerId;
-        
-        // Добавляем бонус новому игроку
-        playerData.ton += 1;
-        playerData.gpuTokens += 5;
-        
-        // Сохраняем, что этот игрок пришёл по рефералке
-        savePlayerData();
-        updateUI();
-        
-        // Здесь можно отправить уведомление рефереру через бота
-        // Для этого нужен бэкенд, пока просто сохраняем локально
-        
-        tg.showAlert("🎉 Вы получили бонус 1 TON и 5 GPU за переход по реферальной ссылке!");
-      }
-    }
-  }
-
-  // Функция, которую вызывает реферер, когда кто-то перешёл по его ссылке
-  // (в реальном приложении это должно приходить с сервера)
-  function onFriendJoined(friendId, friendName) {
-    if (addInvitedFriend(friendId, friendName)) {
-      tg.showAlert(`🎉 Новый друг присоединился: ${friendName}!`);
-      // Пересчитываем бонусы за количество друзей
-      updateRefUI();
-    }
-  }
-
-  // Реферальная карта
-  function getRefRewards() {
-    if (playerData.friends >= 50) return { ton: 10, gpu: 50 };
-    if (playerData.friends >= 5) return { ton: 1, gpu: 5 };
-    return { ton: 0, gpu: 0 };
-  }
-
-  function updateRefUI() {
-    const container = document.getElementById("refStatus");
-    if (!container) return;
-    const rewards = getRefRewards();
-
-    if (rewards.ton === 0) {
-      let needed = 5 - playerData.friends;
-      container.innerHTML = `<div style="padding:8px; text-align:center; background:rgba(0,0,0,0.3); border-radius:16px; font-size:12px;">
-        🔒 Требуется ещё ${needed} ${needed === 1 ? 'друг' : (needed < 5 ? 'друга' : 'друзей')} для активации
-      </div>`;
-      return;
-    }
-
-    if (!refActive) {
-      container.innerHTML = `<button id="startRefBtn" style="background:#FF8C00; font-size:12px;">
-        ⛏️ Майнить ${rewards.ton} TON + ${rewards.gpu} GPU
-      </button>`;
-      const btn = document.getElementById("startRefBtn");
-      if (btn) btn.onclick = startRefMining;
-    } else {
-      const percent = refTargetTon ? (refEarnedTon / refTargetTon) * 100 : 0;
-      container.innerHTML = `<div class="progress-bar">
-        <div class="progress-fill" id="refFill" style="width:${percent}%"></div>
-        <div class="progress-text" id="refText">${refEarnedTon.toFixed(1)}/${refTargetTon} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU</div>
-      </div>`;
-    }
-
-    if (refActive && refEarnedTon >= refTargetTon - 0.01) finishRefMining();
-  }
-
-  function finishRefMining() {
-    if (refInterval) clearInterval(refInterval);
-    refActive = false;
-    document.getElementById("refStatus").innerHTML = `<button id="claimRefBtn" class="claim-btn" style="font-size:12px;">
-      🎁 Забрать ${refTargetTon} TON + ${refTargetGpu} GPU
-    </button>`;
-    const btn = document.getElementById("claimRefBtn");
-    if (btn) btn.onclick = () => {
-      playerData.ton += refTargetTon;
-      playerData.gpuTokens += refTargetGpu;
-      savePlayerData();
-      updateUI();
-      refEarnedTon = 0; refEarnedGpu = 0;
-      refTargetTon = 0; refTargetGpu = 0;
-      updateRefUI();
-    };
-  }
-
-  function startRefMining() {
-    const rewards = getRefRewards();
-    if (rewards.ton === 0 || refActive) return;
-    refActive = true;
-    refTargetTon = rewards.ton;
-    refTargetGpu = rewards.gpu;
-    refEarnedTon = 0;
-    refEarnedGpu = 0;
-    let step = 0, steps = 10;
-    const incTon = refTargetTon / steps;
-    const incGpu = refTargetGpu / steps;
-    updateRefUI();
-
-    refInterval = setInterval(() => {
-      if (!refActive) { clearInterval(refInterval); return; }
-      step++;
-      refEarnedTon = Math.min(refEarnedTon + incTon, refTargetTon);
-      refEarnedGpu = Math.min(refEarnedGpu + incGpu, refTargetGpu);
-      const fill = document.getElementById("refFill");
-      const txt = document.getElementById("refText");
-      if (fill) fill.style.width = (refEarnedTon / refTargetTon * 100) + "%";
-      if (txt) txt.innerHTML = `${refEarnedTon.toFixed(1)}/${refTargetTon} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU`;
-      if (step >= steps) { clearInterval(refInterval); finishRefMining(); }
-    }, 700);
-  }
-
-  // Обычные карты
-  function renderCard(idx, state) {
-    const card = document.getElementById(`card_${idx}`);
-    if (!card) return;
-    const g = gpuTemplates[idx];
-    const s = gpuStates[idx];
-    
-    if (state === 'buy') {
-      card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
-        <h3>${g.name} <span class="badge">+20%</span></h3>
-        <div class="rewards-info">
-          <span><img src="ton.png" class="ton-mini"> +${g.tonReward.toFixed(2)} TON</span>
-          <span><i class="fa-solid fa-microchip"></i> +${g.gpuReward} GPU</span>
-        </div>
-        <button class="buy-btn">Купить ${g.price} <img src="ton.png" class="ton-mini"></button>
-      </div>`;
-      card.querySelector('.buy-btn').onclick = () => buyGPU(idx);
-    } else if (state === 'farm') {
-      card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
-        <h3>${g.name} <span class="badge">⚡ майнинг</span></h3>
-        <div class="progress-bar"><div class="progress-fill" id="fill_${idx}"></div><div class="progress-text" id="text_${idx}">0/${s.totalTon.toFixed(1)} TON + 0/${s.totalGpu} GPU</div></div>
-      </div>`;
-    } else {
-      card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
-        <h3>${g.name}</h3>
-        <button class="claim-btn claim-gpu">🎁 Забрать ${s.totalTon.toFixed(1)} TON + ${s.totalGpu} GPU</button>
-      </div>`;
-      card.querySelector('.claim-gpu').onclick = () => claimGPU(idx);
-    }
-  }
-
-  function buyGPU(idx) {
-    const g = gpuTemplates[idx];
-    const s = gpuStates[idx];
-    if (playerData.ton < g.price) { tg.showAlert("❌ Недостаточно TON"); return; }
-    if (s.active) { tg.showAlert("⏳ Карта уже майнит"); return; }
-    
-    playerData.ton -= g.price;
-    s.active = true;
-    s.totalTon = g.tonReward;
-    s.totalGpu = g.gpuReward;
-    s.earnedTon = 0;
-    s.earnedGpu = 0;
-    savePlayerData();
-    updateUI();
-    renderCard(idx, 'farm');
-
-    let step = 0, steps = 10;
-    let incTon = s.totalTon / steps;
-    let incGpu = s.totalGpu / steps;
-    let interval = setInterval(() => {
-      if (!s.active) { clearInterval(interval); return; }
-      step++;
-      s.earnedTon = Math.min(s.earnedTon + incTon, s.totalTon);
-      s.earnedGpu = Math.min(s.earnedGpu + incGpu, s.totalGpu);
-      const fill = document.getElementById(`fill_${idx}`);
-      const txt = document.getElementById(`text_${idx}`);
-      if (fill) fill.style.width = (s.earnedTon / s.totalTon * 100) + "%";
-      if (txt) txt.innerHTML = `${s.earnedTon.toFixed(1)}/${s.totalTon.toFixed(1)} TON + ${Math.floor(s.earnedGpu)}/${s.totalGpu} GPU`;
-      if (step >= steps) {
-        clearInterval(interval);
-        s.active = false;
-        renderCard(idx, 'claim');
-        savePlayerData();
-      }
-    }, 700);
-  }
-
-  function claimGPU(idx) {
-    const s = gpuStates[idx];
-    if (s.earnedTon < s.totalTon - 0.01) return;
-    playerData.ton += s.totalTon;
-    playerData.gpuTokens += s.totalGpu;
-    s.totalTon = 0; s.totalGpu = 0;
-    s.earnedTon = 0; s.earnedGpu = 0;
-    savePlayerData();
-    updateUI();
-    renderCard(idx, 'buy');
-  }
-
-  function initGrid() {
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-    gpuTemplates.forEach((_, i) => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.id = `card_${i}`;
-      grid.appendChild(card);
-      const state = gpuStates[i];
-      if (!state.active && state.totalTon === 0) renderCard(i, 'buy');
-      else if (state.active) renderCard(i, 'farm');
-      else if (!state.active && state.totalTon > 0) renderCard(i, 'claim');
-      else renderCard(i, 'buy');
-    });
-  }
-
-  window.openTab = function(id, btn) {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    if (id === "referral") {
-      updateRefUI();
-      renderFriendsList();
-    }
-  };
-
-  // Демо-функция для тестирования добавления друга
-  function demoAddFriend() {
-    const demoId = "demo_" + Math.floor(Math.random() * 10000);
-    const demoName = "Друг_" + Math.floor(Math.random() * 100);
-    addInvitedFriend(demoId, demoName);
-  }
-
-  // Запуск
-  loadPlayerData();
-  initGrid();
-  updateRefUI();
-  
-  // Кнопка для тестового добавления друга (можно убрать в релизе)
-  const addBtn = document.getElementById("addFriendBtn");
-  if (addBtn) {
-    addBtn.onclick = demoAddFriend;
-  } else {
-    // Если кнопки нет, создаём демо-кнопку
-    const refStats = document.querySelector(".ref-stats");
-    if (refStats && !document.getElementById("addFriendBtn")) {
-      const demoDiv = document.createElement("div");
-      demoDiv.className = "demo-buttons";
-      demoDiv.innerHTML = '<button id="addFriendBtn" class="demo-btn" style="background:#FF8C00;">➕ +1 друг (тест)</button>';
-      refStats.appendChild(demoDiv);
-      document.getElementById("addFriendBtn").onclick = demoAddFriend;
-    }
-  }
-  
-  document.getElementById("copyRefBtn").onclick = () => {
-    const link = document.getElementById("refLink").innerText;
-    navigator.clipboard.writeText(link);
-    tg.showAlert("📋 Реферальная ссылка скопирована!");
-  };
-  
-  // ============ ПОДКЛЮЧЕНИЕ К БЭКЕНДУ ============
+// ============ ПОДКЛЮЧЕНИЕ К БЭКЕНДУ ============
 const API_URL = "https://script.google.com/macros/s/AKfycby5wqEsKwmjvRo1N8Fk1yJ0u3RIxqGXGSM0H0lGnNMfKURZMM_5jtBXqXAUkEGu0tU6mQ/exec";
 
 // ============ ИНИЦИАЛИЗАЦИЯ TELEGRAM ============
@@ -887,13 +478,373 @@ tg.expand();
 // ============ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ============
 let user = tg.initDataUnsafe?.user;
 let userId = user?.id || "test_" + Math.floor(Math.random() * 10000);
+
+// Данные игрока
+let playerData = {
+  ton: 5.0,
+  gpuTokens: 0,
+  friends: 0,
+  referrerId: null,
+  invitedFriends: [],
+  gpus: []
+};
+
+// Данные GPU
+const gpuTemplates = [
+  { name: "GTX 1060", price: 1, tonReward: 1.2, gpuReward: 2 },
+  { name: "RTX 2060", price: 2, tonReward: 2.4, gpuReward: 4 },
+  { name: "RTX 3060", price: 3, tonReward: 3.6, gpuReward: 6 },
+  { name: "EPIC GPU", price: 5, tonReward: 6, gpuReward: 10 }
+];
+
+let gpuStates = [];
+let refActive = false;
+let refEarnedTon = 0, refEarnedGpu = 0;
+let refTargetTon = 0, refTargetGpu = 0;
+let refInterval = null;
+
+// Отображаем данные пользователя
+if (user) {
+  document.getElementById("userFirstName").innerText = user.first_name || "Игрок";
+  if (user.last_name) document.getElementById("userFirstName").innerText += " " + user.last_name;
+  if (user.username) {
+    document.getElementById("userStatus").innerHTML = `@${user.username}`;
+  }
+  let avatarLetter = (user.first_name ? user.first_name[0] : (user.username ? user.username[0].toUpperCase() : "👤"));
+  document.getElementById("avatar").innerText = avatarLetter;
+  document.getElementById("userIdShort").innerText = `#${userId.toString().slice(-5)}`;
+  document.getElementById("walletAddress").innerText = `${userId.toString().slice(0,6)}...${userId.toString().slice(-4)}`;
+} else {
+  document.getElementById("userFirstName").innerText = "Тестовый игрок";
+  document.getElementById("userIdShort").innerText = `#${userId.slice(-5)}`;
+}
+
+// ============ ФУНКЦИИ ============
+function initGpuStates() {
+  gpuStates = gpuTemplates.map(g => ({
+    active: false,
+    totalTon: 0,
+    totalGpu: 0,
+    earnedTon: 0,
+    earnedGpu: 0
+  }));
+}
+
+function saveToLocalStorage() {
+  const key = `cryptogpu_${userId}`;
+  localStorage.setItem(key, JSON.stringify({
+    ton: playerData.ton,
+    gpuTokens: playerData.gpuTokens,
+    friends: playerData.friends,
+    invitedFriends: playerData.invitedFriends,
+    gpuStates: gpuStates
+  }));
+}
+
+function loadFromLocalStorage() {
+  const key = `cryptogpu_${userId}`;
+  const saved = localStorage.getItem(key);
+  if (saved) {
+    const data = JSON.parse(saved);
+    playerData.ton = data.ton || 5;
+    playerData.gpuTokens = data.gpuTokens || 0;
+    playerData.friends = data.friends || 0;
+    playerData.invitedFriends = data.invitedFriends || [];
+    if (data.gpuStates) gpuStates = data.gpuStates;
+    else initGpuStates();
+  } else {
+    initGpuStates();
+    checkReferral();
+  }
+  updateUI();
+  renderFriendsList();
+}
+
+function updateUI() {
+  document.getElementById("ton").innerText = playerData.ton.toFixed(2);
+  document.getElementById("gpuBalance").innerText = playerData.gpuTokens;
+  document.getElementById("friendCount").innerText = playerData.friends;
+  updateRefLink();
+}
+
+function renderFriendsList() {
+  const container = document.getElementById("friendsList");
+  if (!container) return;
+  if (playerData.invitedFriends.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div><div style="text-align:center; font-size:11px; color:#6B7CA8;">Поделитесь ссылкой ниже!</div>';
+    return;
+  }
+  container.innerHTML = playerData.invitedFriends.map(friend => `
+    <div class="friend-item">
+      <div class="friend-avatar">👤</div>
+      <div class="friend-info">
+        <div class="friend-name">${friend.name}</div>
+        <div class="friend-date">Присоединился: ${friend.date}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addInvitedFriend(friendId, friendName) {
+  if (playerData.invitedFriends.some(f => f.id === friendId)) return false;
+  const now = new Date();
+  const dateStr = `${now.getDate()}.${now.getMonth()+1}.${now.getFullYear()}`;
+  playerData.invitedFriends.push({
+    id: friendId,
+    name: friendName,
+    avatar: '👤',
+    date: dateStr,
+    rewardGiven: true
+  });
+  playerData.friends = playerData.invitedFriends.length;
+  saveToLocalStorage();
+  updateUI();
+  renderFriendsList();
+  updateRefUI();
+  return true;
+}
+
+function updateRefLink() {
+  const botUsername = "Gputonminer_bot";
+  const refLink = `https://t.me/${botUsername}?start=ref_${userId}`;
+  document.getElementById("refLink").innerText = refLink;
+}
+
+function checkReferral() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let startParam = urlParams.get('start') || (tg.initDataUnsafe?.start_param);
+  if (startParam && startParam.startsWith('ref_')) {
+    const referrerId = startParam.replace('ref_', '');
+    if (referrerId !== userId && !playerData.referrerId) {
+      playerData.referrerId = referrerId;
+      playerData.ton += 1;
+      playerData.gpuTokens += 5;
+      saveToLocalStorage();
+      updateUI();
+      tg.showAlert("🎉 Вы получили бонус 1 TON и 5 GPU за переход по реферальной ссылке!");
+    }
+  }
+}
+
+function getRefRewards() {
+  if (playerData.friends >= 50) return { ton: 10, gpu: 50 };
+  if (playerData.friends >= 5) return { ton: 1, gpu: 5 };
+  return { ton: 0, gpu: 0 };
+}
+
+function updateRefUI() {
+  const container = document.getElementById("refStatus");
+  if (!container) return;
+  const rewards = getRefRewards();
+
+  if (rewards.ton === 0) {
+    let needed = 5 - playerData.friends;
+    container.innerHTML = `<div style="padding:8px; text-align:center; background:rgba(0,0,0,0.3); border-radius:16px; font-size:12px;">
+      🔒 Требуется ещё ${needed} ${needed === 1 ? 'друг' : (needed < 5 ? 'друга' : 'друзей')}
+    </div>`;
+    return;
+  }
+
+  if (!refActive) {
+    container.innerHTML = `<button id="startRefBtn" style="background:#FF8C00;">⛏️ Майнить ${rewards.ton} TON + ${rewards.gpu} GPU</button>`;
+    const btn = document.getElementById("startRefBtn");
+    if (btn) btn.onclick = startRefMining;
+  } else {
+    const percent = refTargetTon ? (refEarnedTon / refTargetTon) * 100 : 0;
+    container.innerHTML = `<div class="progress-bar">
+      <div class="progress-fill" id="refFill" style="width:${percent}%"></div>
+      <div class="progress-text" id="refText">${refEarnedTon.toFixed(1)}/${refTargetTon} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU</div>
+    </div>`;
+  }
+  if (refActive && refEarnedTon >= refTargetTon - 0.01) finishRefMining();
+}
+
+function finishRefMining() {
+  if (refInterval) clearInterval(refInterval);
+  refActive = false;
+  document.getElementById("refStatus").innerHTML = `<button id="claimRefBtn" class="claim-btn">🎁 Забрать ${refTargetTon} TON + ${refTargetGpu} GPU</button>`;
+  const btn = document.getElementById("claimRefBtn");
+  if (btn) btn.onclick = () => {
+    playerData.ton += refTargetTon;
+    playerData.gpuTokens += refTargetGpu;
+    saveToLocalStorage();
+    updateUI();
+    refEarnedTon = 0; refTargetTon = 0;
+    refEarnedGpu = 0; refTargetGpu = 0;
+    updateRefUI();
+  };
+}
+
+function startRefMining() {
+  const rewards = getRefRewards();
+  if (rewards.ton === 0 || refActive) return;
+  refActive = true;
+  refTargetTon = rewards.ton;
+  refTargetGpu = rewards.gpu;
+  refEarnedTon = 0;
+  refEarnedGpu = 0;
+  let step = 0, steps = 10;
+  const incTon = refTargetTon / steps;
+  const incGpu = refTargetGpu / steps;
+  updateRefUI();
+
+  refInterval = setInterval(() => {
+    if (!refActive) { clearInterval(refInterval); return; }
+    step++;
+    refEarnedTon = Math.min(refEarnedTon + incTon, refTargetTon);
+    refEarnedGpu = Math.min(refEarnedGpu + incGpu, refTargetGpu);
+    const fill = document.getElementById("refFill");
+    const txt = document.getElementById("refText");
+    if (fill) fill.style.width = (refEarnedTon / refTargetTon * 100) + "%";
+    if (txt) txt.innerHTML = `${refEarnedTon.toFixed(1)}/${refTargetTon} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU`;
+    if (step >= steps) { clearInterval(refInterval); finishRefMining(); }
+  }, 700);
+}
+
+function renderCard(idx, state) {
+  const card = document.getElementById(`card_${idx}`);
+  if (!card) return;
+  const g = gpuTemplates[idx];
+  const s = gpuStates[idx];
   
-  // Прячем загрузку, показываем приложение
-  document.getElementById("loading").style.display = "none";
-  document.getElementById("app").style.display = "block";
+  if (state === 'buy') {
+    card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
+      <h3>${g.name} <span class="badge">+20%</span></h3>
+      <div class="rewards-info">
+        <span>+${g.tonReward} TON</span>
+        <span>+${g.gpuReward} GPU</span>
+      </div>
+      <button class="buy-btn">Купить ${g.price} TON</button>
+    </div>`;
+    card.querySelector('.buy-btn').onclick = () => buyGPU(idx);
+  } else if (state === 'farm') {
+    card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
+      <h3>${g.name} ⚡</h3>
+      <div class="progress-bar"><div class="progress-fill" id="fill_${idx}"></div><div class="progress-text" id="text_${idx}">0/${s.totalTon} TON</div></div>
+    </div>`;
+  } else {
+    card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
+      <h3>${g.name}</h3>
+      <button class="claim-btn claim-gpu">🎁 Забрать ${s.totalTon} TON + ${s.totalGpu} GPU</button>
+    </div>`;
+    card.querySelector('.claim-gpu').onclick = () => claimGPU(idx);
+  }
+}
+
+function buyGPU(idx) {
+  const g = gpuTemplates[idx];
+  const s = gpuStates[idx];
+  if (playerData.ton < g.price) { tg.showAlert("❌ Недостаточно TON"); return; }
+  if (s.active) { tg.showAlert("⏳ Карта уже майнит"); return; }
   
-  tg.MainButton.hide();
-  tg.BackButton.hide();
+  playerData.ton -= g.price;
+  s.active = true;
+  s.totalTon = g.tonReward;
+  s.totalGpu = g.gpuReward;
+  s.earnedTon = 0;
+  saveToLocalStorage();
+  updateUI();
+  renderCard(idx, 'farm');
+
+  let step = 0, steps = 10;
+  let incTon = s.totalTon / steps;
+  let interval = setInterval(() => {
+    if (!s.active) { clearInterval(interval); return; }
+    step++;
+    s.earnedTon = Math.min(s.earnedTon + incTon, s.totalTon);
+    const fill = document.getElementById(`fill_${idx}`);
+    const txt = document.getElementById(`text_${idx}`);
+    if (fill) fill.style.width = (s.earnedTon / s.totalTon * 100) + "%";
+    if (txt) txt.innerHTML = `${s.earnedTon.toFixed(1)}/${s.totalTon.toFixed(1)} TON`;
+    if (step >= steps) {
+      clearInterval(interval);
+      s.active = false;
+      renderCard(idx, 'claim');
+      saveToLocalStorage();
+    }
+  }, 700);
+}
+
+function claimGPU(idx) {
+  const s = gpuStates[idx];
+  if (s.earnedTon < s.totalTon - 0.01) return;
+  playerData.ton += s.totalTon;
+  playerData.gpuTokens += s.totalGpu;
+  s.totalTon = 0;
+  s.earnedTon = 0;
+  saveToLocalStorage();
+  updateUI();
+  renderCard(idx, 'buy');
+}
+
+function initGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  gpuTemplates.forEach((_, i) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.id = `card_${i}`;
+    grid.appendChild(card);
+    const s = gpuStates[i];
+    if (!s.active && s.totalTon === 0) renderCard(i, 'buy');
+    else if (s.active) renderCard(i, 'farm');
+    else renderCard(i, 'claim');
+  });
+}
+
+window.openTab = function(id, btn) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  if (id === "referral") {
+    updateRefUI();
+    renderFriendsList();
+  }
+};
+
+// Сохранение в бэкенд (фоновое, не блокирует игру)
+async function saveToBackend() {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save",
+        user_id: userId.toString(),
+        ton: playerData.ton,
+        gpu: playerData.gpuTokens,
+        friends: playerData.friends
+      })
+    });
+  } catch(e) {
+    console.log("Бэкенд временно недоступен");
+  }
+}
+
+// ============ ЗАПУСК ИГРЫ ============
+loadFromLocalStorage();
+initGrid();
+updateRefUI();
+
+// Запускаем сохранение в бэкенд в фоне
+if (userId && userId !== "test_") {
+  saveToBackend();
+}
+
+// Кнопка копирования
+document.getElementById("copyRefBtn").onclick = () => {
+  const link = document.getElementById("refLink").innerText;
+  navigator.clipboard.writeText(link);
+  tg.showAlert("📋 Реферальная ссылка скопирована!");
+};
+
+// Прячем загрузку, показываем приложение
+document.getElementById("loading").style.display = "none";
+document.getElementById("app").style.display = "block";
+
+tg.MainButton.hide();
+tg.BackButton.hide();
 </script>
 </body>
 </html>
