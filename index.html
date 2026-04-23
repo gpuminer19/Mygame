@@ -303,11 +303,6 @@
     color: #8EA3D4;
   }
 
-  .friend-reward {
-    font-size: 10px;
-    color: #FFB347;
-  }
-
   .ref-link-box {
     background: rgba(0, 0, 0, 0.4);
     margin: 12px 16px;
@@ -464,18 +459,17 @@
 </div>
 </div>
 
-<div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Подключение к Telegram...</div>
+<div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка данных...</div>
 
 <script>
-// ============ ПОДКЛЮЧЕНИЕ К БЭКЕНДУ ============
-const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMVxNCrZerQ611jQuWKjW1VlAdM7OJjBvnkhEmmaVxNX-8WKUEY3NrQLfJdK_aEzNLynUrKQ5KxAMpeqmowj7jXQfjyjwuc6q1ueJgqt5bjweTday0aw4K3taP6JGGmgO3-lgRdIVIKcJmJUaT46od1-Vv67SFRghlerkNRXiQ2uKptBMwP6qNAux7NfyRtBn2kldgf4SHgCYDc2Rqw3XvtC88_Rd1colji9wTsWlVatO7m8H2WZsVEEV8mIm-hToiK0yM-IvPTUIVYgcBH0oR5-Mawccg&lib=MPn6rUR7XpdpB7Dj4JNvN_s6DztXR4eDb";
+// ============ КОНФИГУРАЦИЯ ============
+const API_URL = "https://script.google.com/macros/s/AKfycbzm9yTk9gO3cPsZVpUFI6lRFiKJZV_zYIgmPhKdoxsZJ0QUKF0kSOQ9-KUnQrTvnU8Y/exec";
 
 // ============ ИНИЦИАЛИЗАЦИЯ TELEGRAM ============
 let tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// ============ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ============
 let user = tg.initDataUnsafe?.user;
 let userId = user?.id || "test_" + Math.floor(Math.random() * 10000);
 
@@ -485,8 +479,7 @@ let playerData = {
   gpuTokens: 0,
   friends: 0,
   referrerId: null,
-  invitedFriends: [],
-  gpus: []
+  invitedFriends: []
 };
 
 // Данные GPU
@@ -506,7 +499,6 @@ let refInterval = null;
 // Отображаем данные пользователя
 if (user) {
   document.getElementById("userFirstName").innerText = user.first_name || "Игрок";
-  if (user.last_name) document.getElementById("userFirstName").innerText += " " + user.last_name;
   if (user.username) {
     document.getElementById("userStatus").innerHTML = `@${user.username}`;
   }
@@ -519,45 +511,15 @@ if (user) {
   document.getElementById("userIdShort").innerText = `#${userId.slice(-5)}`;
 }
 
-// ============ ФУНКЦИИ ============
+// ============ ОСНОВНЫЕ ФУНКЦИИ ============
 function initGpuStates() {
-  gpuStates = gpuTemplates.map(g => ({
+  gpuStates = gpuTemplates.map(() => ({
     active: false,
     totalTon: 0,
     totalGpu: 0,
     earnedTon: 0,
     earnedGpu: 0
   }));
-}
-
-function saveToLocalStorage() {
-  const key = `cryptogpu_${userId}`;
-  localStorage.setItem(key, JSON.stringify({
-    ton: playerData.ton,
-    gpuTokens: playerData.gpuTokens,
-    friends: playerData.friends,
-    invitedFriends: playerData.invitedFriends,
-    gpuStates: gpuStates
-  }));
-}
-
-function loadFromLocalStorage() {
-  const key = `cryptogpu_${userId}`;
-  const saved = localStorage.getItem(key);
-  if (saved) {
-    const data = JSON.parse(saved);
-    playerData.ton = data.ton || 5;
-    playerData.gpuTokens = data.gpuTokens || 0;
-    playerData.friends = data.friends || 0;
-    playerData.invitedFriends = data.invitedFriends || [];
-    if (data.gpuStates) gpuStates = data.gpuStates;
-    else initGpuStates();
-  } else {
-    initGpuStates();
-    checkReferral();
-  }
-  updateUI();
-  renderFriendsList();
 }
 
 function updateUI() {
@@ -567,11 +529,17 @@ function updateUI() {
   updateRefLink();
 }
 
+function updateRefLink() {
+  const botUsername = "Gputonminer_bot";
+  const refLink = `https://t.me/${botUsername}?start=ref_${userId}`;
+  document.getElementById("refLink").innerText = refLink;
+}
+
 function renderFriendsList() {
   const container = document.getElementById("friendsList");
   if (!container) return;
   if (playerData.invitedFriends.length === 0) {
-    container.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div><div style="text-align:center; font-size:11px; color:#6B7CA8;">Поделитесь ссылкой ниже!</div>';
+    container.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div>';
     return;
   }
   container.innerHTML = playerData.invitedFriends.map(friend => `
@@ -585,47 +553,82 @@ function renderFriendsList() {
   `).join('');
 }
 
-function addInvitedFriend(friendId, friendName) {
-  if (playerData.invitedFriends.some(f => f.id === friendId)) return false;
-  const now = new Date();
-  const dateStr = `${now.getDate()}.${now.getMonth()+1}.${now.getFullYear()}`;
-  playerData.invitedFriends.push({
-    id: friendId,
-    name: friendName,
-    avatar: '👤',
-    date: dateStr,
-    rewardGiven: true
-  });
-  playerData.friends = playerData.invitedFriends.length;
-  saveToLocalStorage();
-  updateUI();
-  renderFriendsList();
-  updateRefUI();
-  return true;
-}
-
-function updateRefLink() {
-  const botUsername = "Gputonminer_bot";
-  const refLink = `https://t.me/${botUsername}?start=ref_${userId}`;
-  document.getElementById("refLink").innerText = refLink;
-}
-
-function checkReferral() {
-  const urlParams = new URLSearchParams(window.location.search);
-  let startParam = urlParams.get('start') || (tg.initDataUnsafe?.start_param);
-  if (startParam && startParam.startsWith('ref_')) {
-    const referrerId = startParam.replace('ref_', '');
-    if (referrerId !== userId && !playerData.referrerId) {
-      playerData.referrerId = referrerId;
-      playerData.ton += 1;
-      playerData.gpuTokens += 5;
-      saveToLocalStorage();
+// ============ РАБОТА С БЭКЕНДОМ ============
+async function syncWithBackend() {
+  try {
+    // Регистрируемся и получаем данные с сервера
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "register",
+        user_id: userId.toString(),
+        name: user?.first_name || "Игрок",
+        referrer_id: playerData.referrerId
+      })
+    });
+    
+    const result = await response.json();
+    if (result.success && result.data) {
+      playerData.ton = result.data.ton;
+      playerData.gpuTokens = result.data.gpu;
+      playerData.friends = result.data.friends;
       updateUI();
-      tg.showAlert("🎉 Вы получили бонус 1 TON и 5 GPU за переход по реферальной ссылке!");
+      
+      // Загружаем список рефералов
+      await loadReferrals();
     }
+  } catch(e) {
+    console.log("Ошибка подключения к бэкенду:", e);
+    tg.showAlert("⚠️ Не удалось подключиться к серверу, но игра работает локально");
   }
 }
 
+async function loadReferrals() {
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "getReferrals",
+        user_id: userId.toString()
+      })
+    });
+    const result = await response.json();
+    if (result.success && result.referrals) {
+      playerData.invitedFriends = result.referrals.map(ref => ({
+        name: ref.friend_name,
+        date: ref.date || "недавно"
+      }));
+      playerData.friends = playerData.invitedFriends.length;
+      renderFriendsList();
+      updateUI();
+    }
+  } catch(e) {
+    console.log("Ошибка загрузки рефералов");
+  }
+}
+
+async function saveToBackend(tonEarned = 0) {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save",
+        user_id: userId.toString(),
+        ton: playerData.ton,
+        gpu: playerData.gpuTokens,
+        friends: playerData.friends,
+        ton_earned: tonEarned
+      })
+    });
+  } catch(e) {
+    console.log("Ошибка сохранения");
+  }
+}
+
+// ============ РЕФЕРАЛЬНАЯ КАРТА ============
 function getRefRewards() {
   if (playerData.friends >= 50) return { ton: 10, gpu: 50 };
   if (playerData.friends >= 5) return { ton: 1, gpu: 5 };
@@ -667,7 +670,7 @@ function finishRefMining() {
   if (btn) btn.onclick = () => {
     playerData.ton += refTargetTon;
     playerData.gpuTokens += refTargetGpu;
-    saveToLocalStorage();
+    saveToBackend(refTargetTon);
     updateUI();
     refEarnedTon = 0; refTargetTon = 0;
     refEarnedGpu = 0; refTargetGpu = 0;
@@ -701,6 +704,7 @@ function startRefMining() {
   }, 700);
 }
 
+// ============ GPU КАРТЫ ============
 function renderCard(idx, state) {
   const card = document.getElementById(`card_${idx}`);
   if (!card) return;
@@ -742,7 +746,7 @@ function buyGPU(idx) {
   s.totalTon = g.tonReward;
   s.totalGpu = g.gpuReward;
   s.earnedTon = 0;
-  saveToLocalStorage();
+  saveToBackend();
   updateUI();
   renderCard(idx, 'farm');
 
@@ -760,7 +764,7 @@ function buyGPU(idx) {
       clearInterval(interval);
       s.active = false;
       renderCard(idx, 'claim');
-      saveToLocalStorage();
+      saveToBackend();
     }
   }, 700);
 }
@@ -770,9 +774,9 @@ function claimGPU(idx) {
   if (s.earnedTon < s.totalTon - 0.01) return;
   playerData.ton += s.totalTon;
   playerData.gpuTokens += s.totalGpu;
+  saveToBackend(s.totalTon);
   s.totalTon = 0;
   s.earnedTon = 0;
-  saveToLocalStorage();
   updateUI();
   renderCard(idx, 'buy');
 }
@@ -785,10 +789,7 @@ function initGrid() {
     card.className = "card";
     card.id = `card_${i}`;
     grid.appendChild(card);
-    const s = gpuStates[i];
-    if (!s.active && s.totalTon === 0) renderCard(i, 'buy');
-    else if (s.active) renderCard(i, 'farm');
-    else renderCard(i, 'claim');
+    renderCard(i, 'buy');
   });
 }
 
@@ -803,45 +804,24 @@ window.openTab = function(id, btn) {
   }
 };
 
-// Сохранение в бэкенд (фоновое, не блокирует игру)
-async function saveToBackend() {
-  try {
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "save",
-        user_id: userId.toString(),
-        ton: playerData.ton,
-        gpu: playerData.gpuTokens,
-        friends: playerData.friends
-      })
-    });
-  } catch(e) {
-    console.log("Бэкенд временно недоступен");
-  }
-}
-
 // ============ ЗАПУСК ИГРЫ ============
-loadFromLocalStorage();
-initGrid();
-updateRefUI();
-
-// Запускаем сохранение в бэкенд в фоне
-if (userId && userId !== "test_") {
-  saveToBackend();
+async function init() {
+  initGpuStates();
+  initGrid();
+  await syncWithBackend();
+  updateRefUI();
+  
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display = "block";
 }
 
-// Кнопка копирования
 document.getElementById("copyRefBtn").onclick = () => {
   const link = document.getElementById("refLink").innerText;
   navigator.clipboard.writeText(link);
   tg.showAlert("📋 Реферальная ссылка скопирована!");
 };
 
-// Прячем загрузку, показываем приложение
-document.getElementById("loading").style.display = "none";
-document.getElementById("app").style.display = "block";
+init();
 
 tg.MainButton.hide();
 tg.BackButton.hide();
