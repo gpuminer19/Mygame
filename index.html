@@ -7,381 +7,55 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
 <style>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  body {
-    background: #0B0E1A;
-    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
-    color: #fff;
-    padding-bottom: 80px;
-  }
-
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(ellipse at 30% 40%, #121936 0%, #070A14 100%);
-    z-index: -2;
-  }
-
-  .header {
-    background: rgba(8, 12, 24, 0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-    padding: 12px 20px 16px;
-    border-radius: 0 0 28px 28px;
-  }
-
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 8px 12px;
-    border-radius: 44px;
-  }
-
-  .avatar {
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, #00D4FF, #0066FF);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 20px;
-  }
-
-  .user-name {
-    flex: 1;
-  }
-
-  .user-name h3 {
-    font-size: 16px;
-    margin-bottom: 2px;
-  }
-
-  .user-name p {
-    font-size: 10px;
-    color: #6B7CA8;
-  }
-
-  .user-id {
-    font-family: monospace;
-    font-size: 11px;
-    background: rgba(0,0,0,0.4);
-    padding: 4px 10px;
-    border-radius: 20px;
-  }
-
-  .balance-container {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .balance-card {
-    flex: 1;
-    background: linear-gradient(135deg, rgba(0, 50, 100, 0.4), rgba(0, 20, 50, 0.6));
-    border-radius: 20px;
-    padding: 10px 14px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 212, 255, 0.25);
-  }
-
-  .balance-label {
-    font-size: 10px;
-    color: #8EA3D4;
-    margin-bottom: 5px;
-  }
-
-  .balance-value {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .balance-value span {
-    font-size: 24px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #FFF, #A0C4FF);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .currency-icon {
-    width: 22px;
-    height: 22px;
-  }
-
-  .gpu-currency {
-    background: linear-gradient(135deg, #FFB347, #FF8C00);
-    border-radius: 30px;
-    padding: 2px 6px;
-    font-size: 9px;
-    font-weight: bold;
-    color: #1A1F2E;
-  }
-
-  .grid {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .card {
-    background: rgba(12, 18, 32, 0.75);
-    backdrop-filter: blur(12px);
-    border-radius: 24px;
-    padding: 12px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    border: 1px solid rgba(0, 212, 255, 0.2);
-  }
-
-  .gpu-img {
-    width: 65px;
-    height: 65px;
-    object-fit: contain;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 18px;
-    padding: 8px;
-  }
-
-  .card-info {
-    flex: 1;
-  }
-
-  .card-info h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-
-  .badge {
-    background: rgba(0, 212, 255, 0.2);
-    padding: 2px 6px;
-    border-radius: 20px;
-    font-size: 8px;
-    color: #00D4FF;
-  }
-
-  .rewards-info {
-    display: flex;
-    gap: 10px;
-    font-size: 10px;
-    color: #A0B4E0;
-    margin-bottom: 6px;
-  }
-
-  button {
-    background: linear-gradient(95deg, #1A2A5E, #0F1A3A);
-    border: none;
-    font-weight: 600;
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 40px;
-    color: white;
-    width: 100%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.15s;
-  }
-
-  button:active {
-    transform: scale(0.97);
-  }
-
-  .claim-btn {
-    background: linear-gradient(95deg, #008A5C, #00A86B);
-  }
-
-  .progress-bar {
-    width: 100%;
-    height: 24px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 40px;
-    overflow: hidden;
-    position: relative;
-    margin-top: 6px;
-    border: 1px solid rgba(0, 212, 255, 0.3);
-  }
-
-  .progress-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #00D4FF, #0066FF);
-    border-radius: 40px;
-    transition: width 0.2s linear;
-  }
-
-  .progress-text {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: bold;
-    gap: 3px;
-  }
-
-  .ref-stats {
-    background: linear-gradient(135deg, #1A1F35, #11152A);
-    margin: 16px;
-    padding: 16px;
-    border-radius: 28px;
-    text-align: center;
-    border: 1px solid rgba(255, 180, 71, 0.3);
-  }
-
-  .friend-count {
-    font-size: 40px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #FFB347, #FF8C00);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .friends-list {
-    margin-top: 16px;
-    max-height: 250px;
-    overflow-y: auto;
-  }
-
-  .friend-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 40px;
-    margin-bottom: 6px;
-  }
-
-  .friend-avatar {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #FFB347, #FF8C00);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: bold;
-  }
-
-  .friend-info {
-    flex: 1;
-    text-align: left;
-  }
-
-  .friend-name {
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .friend-date {
-    font-size: 9px;
-    color: #8EA3D4;
-  }
-
-  .ref-link-box {
-    background: rgba(0, 0, 0, 0.4);
-    margin: 12px 16px;
-    padding: 10px 14px;
-    border-radius: 60px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .ref-link-box span {
-    font-size: 10px;
-    font-family: monospace;
-    color: #FFD699;
-    word-break: break-all;
-  }
-
-  .copy-btn {
-    width: auto;
-    padding: 6px 14px;
-    background: #FF8C00;
-    margin: 0;
-  }
-
-  .bottom-nav {
-    position: fixed;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    background: rgba(8, 12, 24, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 44px;
-    display: flex;
-    justify-content: space-around;
-    padding: 5px 8px;
-    border: 1px solid rgba(0, 212, 255, 0.25);
-    z-index: 100;
-  }
-
-  .nav-btn {
-    background: transparent !important;
-    box-shadow: none !important;
-    width: auto !important;
-    padding: 8px 16px !important;
-    font-size: 20px !important;
-    color: #5A6A8A !important;
-    margin: 0 !important;
-  }
-
-  .nav-btn.active {
-    color: #00D4FF !important;
-    background: rgba(0, 212, 255, 0.15) !important;
-  }
-
-  .tab {
-    display: none;
-    animation: fade 0.25s ease;
-  }
-
-  .tab.active {
-    display: block;
-  }
-
-  @keyframes fade {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .ton-mini, .gpu-mini {
-    width: 12px;
-    height: 12px;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #6B7CA8;
-  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: #0B0E1A; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; color: #fff; padding-bottom: 80px; }
+  body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at 30% 40%, #121936 0%, #070A14 100%); z-index: -2; }
+  .header { background: rgba(8, 12, 24, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding: 12px 20px 16px; border-radius: 0 0 28px 28px; }
+  .user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; background: rgba(0, 0, 0, 0.3); padding: 8px 12px; border-radius: 44px; }
+  .avatar { width: 44px; height: 44px; background: linear-gradient(135deg, #00D4FF, #0066FF); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; }
+  .user-name { flex: 1; }
+  .user-name h3 { font-size: 16px; margin-bottom: 2px; }
+  .user-name p { font-size: 10px; color: #6B7CA8; }
+  .user-id { font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 20px; }
+  .balance-container { display: flex; gap: 12px; flex-wrap: wrap; }
+  .balance-card { flex: 1; background: linear-gradient(135deg, rgba(0, 50, 100, 0.4), rgba(0, 20, 50, 0.6)); border-radius: 20px; padding: 10px 14px; backdrop-filter: blur(10px); border: 1px solid rgba(0, 212, 255, 0.25); }
+  .balance-label { font-size: 10px; color: #8EA3D4; margin-bottom: 5px; }
+  .balance-value { display: flex; align-items: center; gap: 6px; }
+  .balance-value span { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FFF, #A0C4FF); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .currency-icon { width: 22px; height: 22px; }
+  .gpu-currency { background: linear-gradient(135deg, #FFB347, #FF8C00); border-radius: 30px; padding: 2px 6px; font-size: 9px; font-weight: bold; color: #1A1F2E; }
+  .grid { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: rgba(12, 18, 32, 0.75); backdrop-filter: blur(12px); border-radius: 24px; padding: 12px; display: flex; gap: 12px; align-items: center; border: 1px solid rgba(0, 212, 255, 0.2); }
+  .gpu-img { width: 65px; height: 65px; object-fit: contain; background: rgba(0, 0, 0, 0.4); border-radius: 18px; padding: 8px; }
+  .card-info { flex: 1; }
+  .card-info h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .badge { background: rgba(0, 212, 255, 0.2); padding: 2px 6px; border-radius: 20px; font-size: 8px; color: #00D4FF; }
+  .rewards-info { display: flex; gap: 10px; font-size: 10px; color: #A0B4E0; margin-bottom: 6px; }
+  button { background: linear-gradient(95deg, #1A2A5E, #0F1A3A); border: none; font-weight: 600; font-size: 12px; padding: 8px 12px; border-radius: 40px; color: white; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
+  button:active { transform: scale(0.97); }
+  .claim-btn { background: linear-gradient(95deg, #008A5C, #00A86B); }
+  .progress-bar { width: 100%; height: 24px; background: rgba(0, 0, 0, 0.5); border-radius: 40px; overflow: hidden; position: relative; margin-top: 6px; border: 1px solid rgba(0, 212, 255, 0.3); }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00D4FF, #0066FF); border-radius: 40px; transition: width 0.2s linear; }
+  .progress-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; gap: 3px; }
+  .ref-stats { background: linear-gradient(135deg, #1A1F35, #11152A); margin: 16px; padding: 16px; border-radius: 28px; text-align: center; border: 1px solid rgba(255, 180, 71, 0.3); }
+  .friend-count { font-size: 40px; font-weight: 800; background: linear-gradient(135deg, #FFB347, #FF8C00); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .friends-list { margin-top: 16px; max-height: 250px; overflow-y: auto; }
+  .friend-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border-radius: 40px; margin-bottom: 6px; }
+  .friend-avatar { width: 32px; height: 32px; background: linear-gradient(135deg, #FFB347, #FF8C00); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+  .friend-info { flex: 1; text-align: left; }
+  .friend-name { font-size: 13px; font-weight: 600; }
+  .friend-date { font-size: 9px; color: #8EA3D4; }
+  .ref-link-box { background: rgba(0, 0, 0, 0.4); margin: 12px 16px; padding: 10px 14px; border-radius: 60px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .ref-link-box span { font-size: 10px; font-family: monospace; color: #FFD699; word-break: break-all; }
+  .copy-btn { width: auto; padding: 6px 14px; background: #FF8C00; margin: 0; }
+  .bottom-nav { position: fixed; bottom: 10px; left: 10px; right: 10px; background: rgba(8, 12, 24, 0.95); backdrop-filter: blur(20px); border-radius: 44px; display: flex; justify-content: space-around; padding: 5px 8px; border: 1px solid rgba(0, 212, 255, 0.25); z-index: 100; }
+  .nav-btn { background: transparent !important; box-shadow: none !important; width: auto !important; padding: 8px 16px !important; font-size: 20px !important; color: #5A6A8A !important; margin: 0 !important; }
+  .nav-btn.active { color: #00D4FF !important; background: rgba(0, 212, 255, 0.15) !important; }
+  .tab { display: none; animation: fade 0.25s ease; }
+  .tab.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .ton-mini, .gpu-mini { width: 12px; height: 12px; }
+  .loading { text-align: center; padding: 40px; color: #6B7CA8; }
 </style>
 </head>
 <body>
@@ -396,7 +70,7 @@
     </div>
     <div class="user-id" id="userIdShort">---</div>
   </div>
-  
+
   <div class="balance-container">
     <div class="balance-card">
       <div class="balance-label">💰 TON Balance</div>
@@ -424,7 +98,6 @@
     <h3>👥 Приглашено друзей</h3>
     <div class="friend-count" id="friendCount">0</div>
     <div class="badge" style="display:inline-block; margin-top:4px;">5 друзей → 1 TON + 5 GPU | 50 → 10 TON + 50 GPU</div>
-    
     <div class="friends-list" id="friendsList">
       <div style="text-align:center; padding:10px; color:#6B7CA8;">У вас пока нет приглашённых друзей</div>
     </div>
@@ -473,7 +146,6 @@ tg.expand();
 let user = tg.initDataUnsafe?.user;
 let userId = user?.id || "test_" + Math.floor(Math.random() * 10000);
 
-// Данные игрока
 let playerData = {
   ton: 5.0,
   gpuTokens: 0,
@@ -482,7 +154,6 @@ let playerData = {
   invitedFriends: []
 };
 
-// Данные GPU
 const gpuTemplates = [
   { name: "GTX 1060", price: 1, tonReward: 1.2, gpuReward: 2 },
   { name: "RTX 2060", price: 2, tonReward: 2.4, gpuReward: 4 },
@@ -496,7 +167,6 @@ let refEarnedTon = 0, refEarnedGpu = 0;
 let refTargetTon = 0, refTargetGpu = 0;
 let refInterval = null;
 
-// Отображаем данные пользователя
 if (user) {
   document.getElementById("userFirstName").innerText = user.first_name || "Игрок";
   if (user.username) {
@@ -514,11 +184,7 @@ if (user) {
 // ============ ОСНОВНЫЕ ФУНКЦИИ ============
 function initGpuStates() {
   gpuStates = gpuTemplates.map(() => ({
-    active: false,
-    totalTon: 0,
-    totalGpu: 0,
-    earnedTon: 0,
-    earnedGpu: 0
+    active: false, totalTon: 0, totalGpu: 0, earnedTon: 0, earnedGpu: 0
   }));
 }
 
@@ -556,7 +222,6 @@ function renderFriendsList() {
 // ============ РАБОТА С БЭКЕНДОМ ============
 async function syncWithBackend() {
   try {
-    // Регистрируемся и получаем данные с сервера
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -567,21 +232,81 @@ async function syncWithBackend() {
         referrer_id: playerData.referrerId
       })
     });
-    
+
     const result = await response.json();
     if (result.success && result.data) {
       playerData.ton = result.data.ton;
       playerData.gpuTokens = result.data.gpu;
       playerData.friends = result.data.friends;
+
+      const saved = result.data.state || {};
+      if (Array.isArray(saved.gpuStates) && saved.gpuStates.length === gpuTemplates.length) {
+        gpuStates = saved.gpuStates.map(s => ({
+          active: !!s.active,
+          totalTon: Number(s.totalTon) || 0,
+          totalGpu: Number(s.totalGpu) || 0,
+          earnedTon: Number(s.earnedTon) || 0,
+          earnedGpu: Number(s.earnedGpu) || 0
+        }));
+      }
+      if (saved.refState) {
+        refActive = false;
+        refTargetTon = Number(saved.refState.refTargetTon) || 0;
+        refTargetGpu = Number(saved.refState.refTargetGpu) || 0;
+        refEarnedTon = Number(saved.refState.refEarnedTon) || 0;
+        refEarnedGpu = Number(saved.refState.refEarnedGpu) || 0;
+      }
+
       updateUI();
-      
-      // Загружаем список рефералов
+      restoreCardsUI();
       await loadReferrals();
     }
   } catch(e) {
     console.log("Ошибка подключения к бэкенду:", e);
     tg.showAlert("⚠️ Не удалось подключиться к серверу, но игра работает локально");
   }
+}
+
+function restoreCardsUI() {
+  gpuStates.forEach((s, idx) => {
+    if (s.totalTon > 0 && s.earnedTon >= s.totalTon - 0.01) {
+      renderCard(idx, 'claim');
+    } else if (s.active && s.totalTon > 0) {
+      renderCard(idx, 'farm');
+      resumeMining(idx);
+    } else {
+      renderCard(idx, 'buy');
+    }
+  });
+}
+
+function resumeMining(idx) {
+  const s = gpuStates[idx];
+  const remainingSteps = Math.max(1, Math.ceil((s.totalTon - s.earnedTon) / (s.totalTon / 10)));
+  const incTon = (s.totalTon - s.earnedTon) / remainingSteps;
+  let step = 0;
+  const interval = setInterval(() => {
+    if (!s.active) { clearInterval(interval); return; }
+    step++;
+    s.earnedTon = Math.min(s.earnedTon + incTon, s.totalTon);
+    const fill = document.getElementById(`fill_${idx}`);
+    const txt = document.getElementById(`text_${idx}`);
+    if (fill) fill.style.width = (s.earnedTon / s.totalTon * 100) + "%";
+    if (txt) txt.innerHTML = `${s.earnedTon.toFixed(1)}/${s.totalTon.toFixed(1)} TON`;
+    if (step >= remainingSteps) {
+      clearInterval(interval);
+      s.active = false;
+      renderCard(idx, 'claim');
+      saveToBackend();
+    }
+  }, 700);
+}
+
+function buildStatePayload() {
+  return {
+    gpuStates: gpuStates,
+    refState: { refTargetTon, refTargetGpu, refEarnedTon, refEarnedGpu }
+  };
 }
 
 async function loadReferrals() {
@@ -620,7 +345,8 @@ async function saveToBackend(tonEarned = 0) {
         ton: playerData.ton,
         gpu: playerData.gpuTokens,
         friends: playerData.friends,
-        ton_earned: tonEarned
+        ton_earned: tonEarned,
+        state: buildStatePayload()
       })
     });
   } catch(e) {
@@ -710,7 +436,6 @@ function renderCard(idx, state) {
   if (!card) return;
   const g = gpuTemplates[idx];
   const s = gpuStates[idx];
-  
   if (state === 'buy') {
     card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
       <h3>${g.name} <span class="badge">+20%</span></h3>
@@ -724,7 +449,7 @@ function renderCard(idx, state) {
   } else if (state === 'farm') {
     card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
       <h3>${g.name} ⚡</h3>
-      <div class="progress-bar"><div class="progress-fill" id="fill_${idx}"></div><div class="progress-text" id="text_${idx}">0/${s.totalTon} TON</div></div>
+      <div class="progress-bar"><div class="progress-fill" id="fill_${idx}"></div><div class="progress-text" id="text_${idx}">${s.earnedTon.toFixed(1)}/${s.totalTon} TON</div></div>
     </div>`;
   } else {
     card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
@@ -734,13 +459,11 @@ function renderCard(idx, state) {
     card.querySelector('.claim-gpu').onclick = () => claimGPU(idx);
   }
 }
-
 function buyGPU(idx) {
   const g = gpuTemplates[idx];
   const s = gpuStates[idx];
   if (playerData.ton < g.price) { tg.showAlert("❌ Недостаточно TON"); return; }
   if (s.active) { tg.showAlert("⏳ Карта уже майнит"); return; }
-  
   playerData.ton -= g.price;
   s.active = true;
   s.totalTon = g.tonReward;
@@ -749,7 +472,6 @@ function buyGPU(idx) {
   saveToBackend();
   updateUI();
   renderCard(idx, 'farm');
-
   let step = 0, steps = 10;
   let incTon = s.totalTon / steps;
   let interval = setInterval(() => {
@@ -768,7 +490,6 @@ function buyGPU(idx) {
     }
   }, 700);
 }
-
 function claimGPU(idx) {
   const s = gpuStates[idx];
   if (s.earnedTon < s.totalTon - 0.01) return;
@@ -780,7 +501,6 @@ function claimGPU(idx) {
   updateUI();
   renderCard(idx, 'buy');
 }
-
 function initGrid() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
@@ -792,7 +512,6 @@ function initGrid() {
     renderCard(i, 'buy');
   });
 }
-
 window.openTab = function(id, btn) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -803,26 +522,21 @@ window.openTab = function(id, btn) {
     renderFriendsList();
   }
 };
-
 // ============ ЗАПУСК ИГРЫ ============
 async function init() {
   initGpuStates();
   initGrid();
   await syncWithBackend();
   updateRefUI();
-  
   document.getElementById("loading").style.display = "none";
   document.getElementById("app").style.display = "block";
 }
-
 document.getElementById("copyRefBtn").onclick = () => {
   const link = document.getElementById("refLink").innerText;
   navigator.clipboard.writeText(link);
   tg.showAlert("📋 Реферальная ссылка скопирована!");
 };
-
 init();
-
 tg.MainButton.hide();
 tg.BackButton.hide();
 </script>
