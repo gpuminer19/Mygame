@@ -8,8 +8,8 @@
 <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { background: #0B0E1A; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; color: #fff; padding-bottom: 80px; }
-  body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at 30% 40%, #121936 0%, #070A14 100%); z-index: -2; }
+  body { background: #0B0E1A; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; color: #fff; padding-bottom: 90px; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 30% 40%, #121936 0%, #070A14 100%); z-index: -2; }
   .header { background: rgba(8, 12, 24, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 212, 255, 0.2); padding: 12px 20px 16px; border-radius: 0 0 28px 28px; }
   .user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; background: rgba(0, 0, 0, 0.3); padding: 8px 12px; border-radius: 44px; }
   .avatar { width: 44px; height: 44px; background: linear-gradient(135deg, #00D4FF, #0066FF); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; }
@@ -21,18 +21,19 @@
   .balance-card { flex: 1; background: linear-gradient(135deg, rgba(0, 50, 100, 0.4), rgba(0, 20, 50, 0.6)); border-radius: 20px; padding: 10px 14px; backdrop-filter: blur(10px); border: 1px solid rgba(0, 212, 255, 0.25); }
   .balance-label { font-size: 10px; color: #8EA3D4; margin-bottom: 5px; }
   .balance-value { display: flex; align-items: center; gap: 6px; }
-  .balance-value span { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FFF, #A0C4FF); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .currency-icon { width: 22px; height: 22px; }
+  .balance-value span.amt { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FFF, #A0C4FF); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .gpu-currency { background: linear-gradient(135deg, #FFB347, #FF8C00); border-radius: 30px; padding: 2px 6px; font-size: 9px; font-weight: bold; color: #1A1F2E; }
+  .ton-pill { background: linear-gradient(135deg, #00D4FF, #0066FF); border-radius: 30px; padding: 2px 8px; font-size: 9px; font-weight: bold; color: #0B0E1A; }
   .grid { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
   .card { background: rgba(12, 18, 32, 0.75); backdrop-filter: blur(12px); border-radius: 24px; padding: 12px; display: flex; gap: 12px; align-items: center; border: 1px solid rgba(0, 212, 255, 0.2); }
   .gpu-img { width: 65px; height: 65px; object-fit: contain; background: rgba(0, 0, 0, 0.4); border-radius: 18px; padding: 8px; }
-  .card-info { flex: 1; }
+  .card-info { flex: 1; min-width: 0; }
   .card-info h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
   .badge { background: rgba(0, 212, 255, 0.2); padding: 2px 6px; border-radius: 20px; font-size: 8px; color: #00D4FF; }
   .rewards-info { display: flex; gap: 10px; font-size: 10px; color: #A0B4E0; margin-bottom: 6px; }
   button { background: linear-gradient(95deg, #1A2A5E, #0F1A3A); border: none; font-weight: 600; font-size: 12px; padding: 8px 12px; border-radius: 40px; color: white; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
   button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
   .claim-btn { background: linear-gradient(95deg, #008A5C, #00A86B); }
   .progress-bar { width: 100%; height: 24px; background: rgba(0, 0, 0, 0.5); border-radius: 40px; overflow: hidden; position: relative; margin-top: 6px; border: 1px solid rgba(0, 212, 255, 0.3); }
   .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #00D4FF, #0066FF); border-radius: 40px; transition: width 0.2s linear; }
@@ -58,22 +59,26 @@
   .deposit-box { margin: 16px; padding: 18px; border-radius: 24px; background: linear-gradient(135deg, #1A1F35, #11152A); border: 1px solid rgba(0, 212, 255, 0.3); }
   .deposit-box h3 { margin-bottom: 12px; font-size: 16px; }
   .deposit-box label { display: block; font-size: 11px; color: #8EA3D4; margin-bottom: 6px; }
-  .deposit-box input { width: 100%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; }
+  .deposit-box input { width: 100%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; margin-bottom: 10px; }
   .deposit-box input:focus { border-color: #00D4FF; }
-  .deposit-box .pay-btn { margin-top: 12px; background: linear-gradient(95deg, #00D4FF, #0066FF); color: #0B0E1A; }
+  .deposit-box .pay-btn { margin-top: 4px; background: linear-gradient(95deg, #00D4FF, #0066FF); color: #0B0E1A; }
+  .deposit-box .wd-btn { margin-top: 4px; background: linear-gradient(95deg, #FF8C00, #FFB347); color: #0B0E1A; }
   .pay-info { background: rgba(0,0,0,0.4); border-radius: 14px; padding: 12px; margin-top: 14px; font-size: 12px; word-break: break-all; }
   .pay-info .row { margin-bottom: 8px; }
   .pay-info .lbl { color: #8EA3D4; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .pay-info .val { font-family: monospace; color: #FFD699; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; display: inline-block; max-width: 100%; word-break: break-all; }
   .pay-info .copy-mini { background: #FF8C00; padding: 4px 10px; font-size: 11px; width: auto; margin-left: 6px; display: inline-flex; }
   .pay-warn { background: rgba(255, 140, 0, 0.15); border: 1px solid rgba(255, 140, 0, 0.4); border-radius: 12px; padding: 10px; margin-top: 10px; font-size: 11px; color: #FFD699; }
+  .pay-ok { background: rgba(0, 212, 255, 0.12); border: 1px solid rgba(0, 212, 255, 0.4); border-radius: 12px; padding: 10px; margin-top: 10px; font-size: 11px; color: #A0E8FF; }
+  .pay-err { background: rgba(255, 60, 60, 0.15); border: 1px solid rgba(255, 60, 60, 0.4); border-radius: 12px; padding: 10px; margin-top: 10px; font-size: 11px; color: #FFB0B0; }
+  .gpu-emoji { font-size: 50px; line-height: 65px; width: 65px; text-align: center; }
 </style>
 </head>
 <body>
 
 <div id="app" style="display:none">
 <div class="header">
-  <div class="user-info" id="userInfo">
+  <div class="user-info">
     <div class="avatar" id="avatar">👤</div>
     <div class="user-name">
       <h3 id="userFirstName">Загрузка...</h3>
@@ -86,14 +91,14 @@
     <div class="balance-card">
       <div class="balance-label">💰 TON Balance</div>
       <div class="balance-value">
-        <span id="ton">5.00</span>
-        <img src="ton.png" class="currency-icon">
+        <span class="amt" id="ton">0.00</span>
+        <span class="ton-pill">TON</span>
       </div>
     </div>
     <div class="balance-card">
       <div class="balance-label">⚡ GPU Tokens</div>
       <div class="balance-value">
-        <span id="gpuBalance">0</span>
+        <span class="amt" id="gpuBalance">0</span>
         <span class="gpu-currency">GPU</span>
       </div>
     </div>
@@ -109,24 +114,15 @@
     <h3>👥 Приглашено друзей</h3>
     <div class="friend-count" id="friendCount">0</div>
     <div class="badge" style="display:inline-block; margin-top:4px;">5 друзей → 1 TON + 5 GPU | 50 → 10 TON + 50 GPU</div>
+    <div id="refClaimBox" style="margin-top:12px;"></div>
     <div class="friends-list" id="friendsList">
       <div style="text-align:center; padding:10px; color:#6B7CA8;">У вас пока нет приглашённых друзей</div>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="card" id="refCard" style="border-color:#FFB347;">
-      <img src="8.png" class="gpu-img" style="filter:drop-shadow(0 0 6px #FFB347);">
-      <div class="card-info">
-        <h3>⭐ DREAM GPU <span class="badge" style="background:#FF8C20;">легендарная</span></h3>
-        <div id="refStatus"></div>
-      </div>
-    </div>
-  </div>
-
   <div class="ref-link-box">
     <span id="refLink">загрузка...</span>
-    <button class="copy-btn" id="copyRefBtn">📋 Коп</button>
+    <button class="copy-btn" id="copyRefBtn">📋</button>
   </div>
 </div>
 
@@ -138,451 +134,267 @@
     <h3>💳 Пополнить баланс TON</h3>
     <label>Сумма пополнения (TON)</label>
     <input id="depositAmount" type="number" min="0.1" step="0.1" placeholder="Например, 5">
-    <button class="pay-btn" id="payBtn" onclick="createDeposit()">💎 Оплатить</button>
+    <button class="pay-btn" id="payBtn">💎 Создать счёт</button>
     <div id="payResult"></div>
+  </div>
+  <div class="deposit-box">
+    <h3>💸 Вывод TON</h3>
+    <label>Сумма вывода (TON)</label>
+    <input id="wdAmount" type="number" min="0.1" step="0.1" placeholder="Например, 1">
+    <label>Ваш TON-кошелёк</label>
+    <input id="wdWallet" type="text" placeholder="UQ...">
+    <button class="wd-btn" id="wdBtn">📤 Запросить вывод</button>
+    <div id="wdResult"></div>
   </div>
 </div>
 
 <div class="bottom-nav">
-  <button class="nav-btn active" onclick="openTab('home',this)"><i class="fa-solid fa-house"></i></button>
-  <button class="nav-btn" onclick="openTab('referral',this)"><i class="fa-solid fa-user-group"></i></button>
-  <button class="nav-btn" onclick="openTab('staking',this)"><i class="fa-solid fa-coins"></i></button>
-  <button class="nav-btn" onclick="openTab('tasks',this)"><i class="fa-solid fa-list-check"></i></button>
-  <button class="nav-btn" onclick="openTab('wallet',this)"><i class="fa-solid fa-wallet"></i></button>
+  <button class="nav-btn active" data-tab="home"><i class="fa-solid fa-house"></i></button>
+  <button class="nav-btn" data-tab="referral"><i class="fa-solid fa-user-group"></i></button>
+  <button class="nav-btn" data-tab="staking"><i class="fa-solid fa-coins"></i></button>
+  <button class="nav-btn" data-tab="tasks"><i class="fa-solid fa-list-check"></i></button>
+  <button class="nav-btn" data-tab="wallet"><i class="fa-solid fa-wallet"></i></button>
 </div>
 </div>
 
 <div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Загрузка данных...</div>
 
 <script>
-const API_URL = "https://gpu-miner-admin--raikinmuj.replit.app/api/tg";
+const API = "/api/game";
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
 
-let tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+const initData = (tg && tg.initData) || (location.hash.startsWith("#dev:") ? location.hash.slice(1) : "");
+const startParam = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
 
-let user = tg.initDataUnsafe?.user;
-let userId = user?.id || "test_" + Math.floor(Math.random() * 10000);
+const tgUser = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
+const userIdGuess = tgUser?.id || "guest";
 
-let playerData = {
-  ton: 5.0, gpuTokens: 0, friends: 0, referrerId: null, invitedFriends: []
-};
+const GPU_EMOJIS = ["🎮", "🟢", "🔵", "🟣"];
 
-const gpuTemplates = [
-  { name: "GTX 1060", price: 1, tonReward: 1.2, gpuReward: 2,  durationMs: 60_000 },
-  { name: "RTX 2060", price: 2, tonReward: 2.4, gpuReward: 4,  durationMs: 120_000 },
-  { name: "RTX 3060", price: 3, tonReward: 3.6, gpuReward: 6,  durationMs: 180_000 },
-  { name: "EPIC GPU", price: 5, tonReward: 6,   gpuReward: 10, durationMs: 300_000 }
-];
+let state = null;
+let timerHandle = null;
 
-let gpuStates = [];
-let refActive = false;
-let refEarnedTon = 0, refEarnedGpu = 0;
-let refTargetTon = 0, refTargetGpu = 0;
-let refInterval = null;
-
-if (user) {
-  document.getElementById("userFirstName").innerText = user.first_name || "Игрок";
-  if (user.username) document.getElementById("userStatus").innerHTML = `@${user.username}`;
-  let avatarLetter = (user.first_name ? user.first_name[0] : (user.username ? user.username[0].toUpperCase() : "👤"));
-  document.getElementById("avatar").innerText = avatarLetter;
-  document.getElementById("userIdShort").innerText = `#${userId.toString().slice(-5)}`;
-} else {
-  document.getElementById("userFirstName").innerText = "Тестовый игрок";
-  document.getElementById("userIdShort").innerText = `#${userId.slice(-5)}`;
+function showAlert(msg) {
+  if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
 }
 
-function initGpuStates() {
-  gpuStates = gpuTemplates.map(() => ({
-    active: false, totalTon: 0, totalGpu: 0,
-    earnedTon: 0, earnedGpu: 0, startedAt: 0, durationMs: 0
-  }));
+async function api(path, body) {
+  const res = await fetch(API + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ initData, ...(body || {}) }),
+  });
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) {
+    const msg = (data && (data.error || data.detail)) || ("HTTP " + res.status);
+    throw new Error(msg);
+  }
+  return data;
 }
 
-function updateUI() {
-  document.getElementById("ton").innerText = playerData.ton.toFixed(2);
-  document.getElementById("gpuBalance").innerText = playerData.gpuTokens;
-  document.getElementById("friendCount").innerText = playerData.friends;
-  updateRefLink();
+function setHeader(s) {
+  document.getElementById("ton").innerText = (s.ton ?? 0).toFixed(2);
+  document.getElementById("gpuBalance").innerText = s.gpu ?? 0;
+  document.getElementById("friendCount").innerText = s.friendsCount ?? 0;
+  document.getElementById("refLink").innerText = s.referralBotLink || "";
+  const name = s.name || "Игрок";
+  document.getElementById("userFirstName").innerText = name;
+  document.getElementById("userStatus").innerText = s.username ? "@" + s.username : ("ID " + s.userId);
+  document.getElementById("userIdShort").innerText = "#" + String(s.userId).slice(-5);
+  document.getElementById("avatar").innerText = name[0] ? name[0].toUpperCase() : "👤";
 }
 
-function updateRefLink() {
-  const botUsername = "Gputonminer_bot";
-  document.getElementById("refLink").innerText = `https://t.me/${botUsername}?start=ref_${userId}`;
+function findOwnedFor(typeId) {
+  return (state?.ownedGpus || []).find(o => o.gpuTypeId === typeId);
 }
 
-function renderFriendsList() {
-  const container = document.getElementById("friendsList");
-  if (!container) return;
-  if (playerData.invitedFriends.length === 0) {
-    container.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div>';
+function renderGrid() {
+  const grid = document.getElementById("grid");
+  if (!state) { grid.innerHTML = ""; return; }
+  grid.innerHTML = state.templates.map((t, i) => {
+    const owned = findOwnedFor(t.id);
+    const emoji = GPU_EMOJIS[i] || "🎮";
+    let body;
+    if (!owned) {
+      body = `
+        <div class="rewards-info">
+          <span>💰 ${t.tonReward} TON</span>
+          <span>⚡ ${t.gpuReward} GPU</span>
+          <span>⏱ ${Math.round(t.durationMs/1000)}с</span>
+        </div>
+        <button data-buy="${t.id}">Купить за ${t.price} TON</button>`;
+    } else if (owned.ready) {
+      body = `
+        <div class="rewards-info"><span>✅ Готово к сбору</span></div>
+        <button class="claim-btn" data-claim="${owned.id}">Забрать ${owned.totalTon} TON + ${owned.totalGpu} GPU</button>`;
+    } else {
+      const now = Date.now();
+      const elapsed = Math.max(0, now - (owned.startedAt || now));
+      const p = Math.min(1, elapsed / owned.durationMs);
+      body = `
+        <div class="progress-bar">
+          <div class="progress-fill" id="fill_${owned.id}" style="width:${(p*100).toFixed(1)}%"></div>
+          <div class="progress-text" id="text_${owned.id}">${(owned.totalTon * p).toFixed(2)} / ${owned.totalTon} TON</div>
+        </div>`;
+    }
+    return `
+      <div class="card">
+        <div class="gpu-emoji">${emoji}</div>
+        <div class="card-info">
+          <h3>${t.name} <span class="badge">${t.tonReward} TON</span></h3>
+          ${body}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function renderRefClaim() {
+  const box = document.getElementById("refClaimBox");
+  if (!state) { box.innerHTML = ""; return; }
+  if (state.refClaimAvailable > 0) {
+    box.innerHTML = `<button class="claim-btn" id="refClaimBtn">🎁 Забрать ${state.refClaimAvailable} TON + ${state.refClaimAvailableGpu} GPU</button>`;
+    document.getElementById("refClaimBtn").onclick = onClaimRef;
+  } else {
+    box.innerHTML = "";
+  }
+}
+
+function renderFriends() {
+  const list = document.getElementById("friendsList");
+  if (!state || state.friends.length === 0) {
+    list.innerHTML = '<div style="text-align:center; padding:10px; color:#6B7CA8;">😢 У вас пока нет приглашённых друзей</div>';
     return;
   }
-  container.innerHTML = playerData.invitedFriends.map(f => `
-    <div class="friend-item">
+  list.innerHTML = state.friends.map(f => {
+    const d = new Date(f.joinedAt);
+    const dStr = d.toLocaleDateString("ru-RU");
+    return `<div class="friend-item">
       <div class="friend-avatar">👤</div>
       <div class="friend-info">
-        <div class="friend-name">${f.name}</div>
-        <div class="friend-date">Присоединился: ${f.date}</div>
-      </div>
-    </div>`).join('');
-}
-
-async function syncWithBackend() {
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "register",
-        user_id: userId.toString(),
-        name: user?.first_name || "Игрок",
-        referrer_id: playerData.referrerId
-      })
-    });
-    const result = await response.json();
-    if (result.success && result.data) {
-      playerData.ton = result.data.ton;
-      playerData.gpuTokens = result.data.gpu;
-      playerData.friends = result.data.friends;
-
-      const saved = result.data.state || {};
-      if (Array.isArray(saved.gpuStates) && saved.gpuStates.length === gpuTemplates.length) {
-        gpuStates = saved.gpuStates.map(s => ({
-          active: !!s.active,
-          totalTon: Number(s.totalTon) || 0,
-          totalGpu: Number(s.totalGpu) || 0,
-          earnedTon: Number(s.earnedTon) || 0,
-          earnedGpu: Number(s.earnedGpu) || 0,
-          startedAt: Number(s.startedAt) || 0,
-          durationMs: Number(s.durationMs) || 0
-        }));
-      }
-      if (saved.refState) {
-        refActive = false;
-        refTargetTon = Number(saved.refState.refTargetTon) || 0;
-        refTargetGpu = Number(saved.refState.refTargetGpu) || 0;
-        refEarnedTon = Number(saved.refState.refEarnedTon) || 0;
-        refEarnedGpu = Number(saved.refState.refEarnedGpu) || 0;
-      }
-      updateUI();
-      restoreCardsUI();
-      await loadReferrals();
-    }
-  } catch(e) {
-    console.log("Ошибка подключения к бэкенду:", e);
-    tg.showAlert("⚠️ Не удалось подключиться к серверу, но игра работает локально");
-  }
-}
-
-function restoreCardsUI() {
-  gpuStates.forEach((s, idx) => {
-    if (s.active && s.startedAt && s.durationMs) {
-      const elapsed = Date.now() - s.startedAt;
-      if (elapsed >= s.durationMs) {
-        s.active = false;
-        s.earnedTon = s.totalTon;
-        s.earnedGpu = s.totalGpu;
-        renderCard(idx, 'claim');
-        saveToBackend();
-      } else {
-        const progress = elapsed / s.durationMs;
-        s.earnedTon = s.totalTon * progress;
-        s.earnedGpu = s.totalGpu * progress;
-        renderCard(idx, 'farm');
-        startMiningTimer(idx);
-      }
-    } else if (s.totalTon > 0 && !s.active) {
-      renderCard(idx, 'claim');
-    } else {
-      renderCard(idx, 'buy');
-    }
-  });
-}
-
-function startMiningTimer(idx) {
-  const s = gpuStates[idx];
-  const tick = () => {
-    if (!s.active) return;
-    const elapsed = Date.now() - s.startedAt;
-    const progress = Math.min(1, elapsed / s.durationMs);
-    s.earnedTon = s.totalTon * progress;
-    s.earnedGpu = s.totalGpu * progress;
-    const fill = document.getElementById(`fill_${idx}`);
-    const txt = document.getElementById(`text_${idx}`);
-    if (fill) fill.style.width = (progress * 100) + "%";
-    if (txt) txt.innerHTML = `${s.earnedTon.toFixed(2)}/${s.totalTon.toFixed(1)} TON`;
-    if (progress >= 1) {
-      s.active = false;
-      s.earnedTon = s.totalTon;
-      s.earnedGpu = s.totalGpu;
-      renderCard(idx, 'claim');
-      saveToBackend();
-    } else {
-      setTimeout(tick, 500);
-    }
-  };
-  tick();
-}
-
-function buildStatePayload() {
-  return {
-    gpuStates: gpuStates,
-    refState: { refTargetTon, refTargetGpu, refEarnedTon, refEarnedGpu }
-  };
-}
-
-async function loadReferrals() {
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "getReferrals", user_id: userId.toString() })
-    });
-    const result = await response.json();
-    if (result.success && result.referrals) {
-      playerData.invitedFriends = result.referrals.map(ref => ({
-        name: ref.friend_name,
-        date: ref.date || "недавно"
-      }));
-      playerData.friends = playerData.invitedFriends.length;
-      renderFriendsList();
-      updateUI();
-    }
-  } catch(e) { console.log("Ошибка загрузки рефералов"); }
-}
-
-async function saveToBackend(tonEarned = 0) {
-  try {
-    await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "save",
-        user_id: userId.toString(),
-        ton: playerData.ton,
-        gpu: playerData.gpuTokens,
-        friends: playerData.friends,
-        ton_earned: tonEarned,
-        state: buildStatePayload()
-      })
-    });
-  } catch(e) { console.log("Ошибка сохранения"); }
-}
-
-// ============ ПОПОЛНЕНИЕ КОШЕЛЬКА ============
-async function createDeposit() {
-  const input = document.getElementById('depositAmount');
-  const amount = Number(input.value);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    tg.showAlert("❌ Введите корректную сумму");
-    return;
-  }
-  const btn = document.getElementById('payBtn');
-  btn.disabled = true;
-  btn.textContent = "⏳ Создаём заявку...";
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "createDeposit",
-        user_id: userId.toString(),
-        name: user?.first_name || "Игрок",
-        amount: amount
-      })
-    });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Ошибка");
-    showPayInfo(data.deposit);
-  } catch(e) {
-    tg.showAlert("❌ " + (e.message || "Не удалось создать заявку"));
-  }
-  btn.disabled = false;
-  btn.innerHTML = "💎 Оплатить";
-}
-
-function showPayInfo(d) {
-  const html = `
-    <div class="pay-info">
-      <div class="row">
-        <div class="lbl">Сумма</div>
-        <span class="val">${d.amount} TON</span>
-      </div>
-      <div class="row">
-        <div class="lbl">TON-кошелёк для перевода</div>
-        <span class="val" id="payWallet">${d.wallet}</span>
-        <button class="copy-mini" onclick="copyText('${d.wallet}')">📋</button>
-      </div>
-      <div class="row">
-        <div class="lbl">Комментарий к переводу (обязательно!)</div>
-        <span class="val" id="payComment">${d.comment}</span>
-        <button class="copy-mini" onclick="copyText('${d.comment}')">📋</button>
-      </div>
-      <div class="pay-warn">
-        ⚠️ Отправьте ровно <b>${d.amount} TON</b> на указанный кошелёк <b>с комментарием</b> выше.
-        После подтверждения админом баланс будет зачислен автоматически.
+        <div class="friend-name">${(f.name || "Друг").replace(/[<>]/g, "")}</div>
+        <div class="friend-date">Присоединился: ${dStr}</div>
       </div>
     </div>`;
-  document.getElementById('payResult').innerHTML = html;
+  }).join("");
 }
-function copyText(text) {
-  navigator.clipboard.writeText(text);
-  tg.showAlert("📋 Скопировано");
-}
-// ============ РЕФЕРАЛЬНАЯ КАРТА ============
-function getRefRewards() {
-  if (playerData.friends >= 50) return { ton: 10, gpu: 50 };
-  if (playerData.friends >= 5) return { ton: 1, gpu: 5 };
-  return { ton: 0, gpu: 0 };
-}
-function updateRefUI() {
-  const container = document.getElementById("refStatus");
-  if (!container) return;
-  const rewards = getRefRewards();
-  if (rewards.ton === 0) {
-    let needed = 5 - playerData.friends;
-    container.innerHTML = `<div style="padding:8px; text-align:center; background:rgba(0,0,0,0.3); border-radius:16px; font-size:12px;">
-      🔒 Требуется ещё ${needed} ${needed === 1 ? 'друг' : (needed < 5 ? 'друга' : 'друзей')}</div>`;
-    return;
-  }
-  if (!refActive) {
-    container.innerHTML = `<button id="startRefBtn" style="background:#FF8C00;">⛏️ Майнить ${rewards.ton} TON + ${rewards.gpu} GPU</button>`;
-    const btn = document.getElementById("startRefBtn");
-    if (btn) btn.onclick = startRefMining;
-  } else {
-    const percent = refTargetTon ? (refEarnedTon / refTargetTon) * 100 : 0;
-    container.innerHTML = `<div class="progress-bar">
-      <div class="progress-fill" id="refFill" style="width:${percent}%"></div>
-      <div class="progress-text" id="refText">${refEarnedTon.toFixed(1)}/${refTargetTon} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU</div></div>`;
-  }
-  if (refActive && refEarnedTon >= refTargetTon - 0.01) finishRefMining();
-}
-function finishRefMining() {
-  if (refInterval) clearInterval(refInterval);
-  refActive = false;
-  document.getElementById("refStatus").innerHTML = `<button id="claimRefBtn" class="claim-btn">🎁 Забрать ${refTargetTon} TON + ${refTargetGpu} GPU</button>`;
-  const btn = document.getElementById("claimRefBtn");
-  if (btn) btn.onclick = () => {
-    playerData.ton += refTargetTon;
-    playerData.gpuTokens += refTargetGpu;
-    saveToBackend(refTargetTon);
-    updateUI();
-    refEarnedTon = 0; refTargetTon = 0;
-    refEarnedGpu = 0; refTargetGpu = 0;
-    updateRefUI();
-  };
-}
-function startRefMining() {
-  const rewards = getRefRewards();
-  if (rewards.ton === 0 || refActive) return;
-  refActive = true;
-  refTargetTon = rewards.ton;
-  refTargetGpu = rewards.gpu;
-  refEarnedTon = 0; refEarnedGpu = 0;
-  let step = 0, steps = 10;
-  const incTon = refTargetTon / steps;
-  const incGpu = refTargetGpu / steps;
-  updateRefUI();
-  refInterval = setInterval(() => {
-    if (!refActive) { clearInterval(refInterval); return; }
-    step++;
-    refEarnedTon = Math.min(refEarnedTon + incTon, refTargetTon);
-    refEarnedGpu = Math.min(refEarnedGpu + incGpu, refTargetGpu);
-    const fill = document.getElementById("refFill");
-    const txt = document.getElementById("refText");
-    if (fill) fill.style.width = (refEarnedTon / refTargetTon * 100) + "%";
-    if (txt) txt.innerHTML = `${refEarnedTon.toFixed(1)}/${refTargetTon} TON + ${Math.floor(refEarnedGpu)}/${refTargetGpu} GPU`;
-    if (step >= steps) { clearInterval(refInterval); finishRefMining(); }
-  }, 700);
-}
-function renderCard(idx, state) {
-  const card = document.getElementById(`card_${idx}`);
-  if (!card) return;
-  const g = gpuTemplates[idx];
-  const s = gpuStates[idx];
-  if (state === 'buy') {
-    card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
-      <h3>${g.name} <span class="badge">+20%</span></h3>
-      <div class="rewards-info"><span>+${g.tonReward} TON</span><span>+${g.gpuReward} GPU</span></div>
-      <button class="buy-btn">Купить ${g.price} TON</button></div>`;
-    card.querySelector('.buy-btn').onclick = () => buyGPU(idx);
-  } else if (state === 'farm') {
-    card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
-      <h3>${g.name} ⚡</h3>
-      <div class="progress-bar"><div class="progress-fill" id="fill_${idx}"></div><div class="progress-text" id="text_${idx}">${s.earnedTon.toFixed(2)}/${s.totalTon} TON</div></div>
-    </div>`;
-  } else {
-    card.innerHTML = `<img src="8.png" class="gpu-img"><div class="card-info">
-      <h3>${g.name}</h3>
-      <button class="claim-btn claim-gpu">🎁 Забрать ${s.totalTon} TON + ${s.totalGpu} GPU</button></div>`;
-    card.querySelector('.claim-gpu').onclick = () => claimGPU(idx);
-  }
-}
-function buyGPU(idx) {
-  const g = gpuTemplates[idx];
-  const s = gpuStates[idx];
-  if (playerData.ton < g.price) { tg.showAlert("❌ Недостаточно TON"); return; }
-  if (s.active) { tg.showAlert("⏳ Карта уже майнит"); return; }
-  playerData.ton -= g.price;
-  s.active = true;
-  s.totalTon = g.tonReward;
-  s.totalGpu = g.gpuReward;
-  s.earnedTon = 0;
-  s.earnedGpu = 0;
-  s.startedAt = Date.now();
-  s.durationMs = g.durationMs;
-  saveToBackend();
-  updateUI();
-  renderCard(idx, 'farm');
-  startMiningTimer(idx);
-}
-function claimGPU(idx) {
-  const s = gpuStates[idx];
-  if (s.earnedTon < s.totalTon - 0.01) return;
-  playerData.ton += s.totalTon;
-  playerData.gpuTokens += s.totalGpu;
-  saveToBackend(s.totalTon);
-  s.totalTon = 0; s.totalGpu = 0;
-  s.earnedTon = 0; s.earnedGpu = 0;
-  s.startedAt = 0; s.durationMs = 0;
-  updateUI();
-  renderCard(idx, 'buy');
-}
-function initGrid() {
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-  gpuTemplates.forEach((_, i) => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.id = `card_${i}`;
-    grid.appendChild(card);
-    renderCard(i, 'buy');
+
+function tickProgress() {
+  if (!state) return;
+  let needsRerender = false;
+  state.ownedGpus.forEach(o => {
+    if (o.ready || o.startedAt == null) return;
+    const elapsed = Date.now() - o.startedAt;
+    const p = Math.min(1, elapsed / o.durationMs);
+    const fill = document.getElementById("fill_" + o.id);
+    const txt = document.getElementById("text_" + o.id);
+    if (fill) fill.style.width = (p*100).toFixed(1) + "%";
+    if (txt) txt.innerText = (o.totalTon * p).toFixed(2) + " / " + o.totalTon + " TON";
+    if (p >= 1) needsRerender = true;
   });
+  if (needsRerender) refresh().catch(()=>{});
 }
-window.openTab = function(id, btn) {
+
+async function onBuy(typeId) {
+  try {
+    state = await api("/buy", { gpuTypeId: typeId });
+    paint();
+  } catch (e) { showAlert("❌ " + e.message); }
+}
+
+async function onClaim(ownedId) {
+  try {
+    state = await api("/claim", { ownedGpuId: ownedId });
+    paint();
+  } catch (e) { showAlert("❌ " + e.message); }
+}
+
+async function onClaimRef() {
+  try {
+    state = await api("/claim-referral", {});
+    paint();
+  } catch (e) { showAlert("❌ " + e.message); }
+}
+
+async function onDeposit() {
+  const amt = parseFloat(document.getElementById("depositAmount").value);
+  const out = document.getElementById("payResult");
+  if (!amt || amt <= 0) { out.innerHTML = '<div class="pay-err">Введите сумму больше 0</div>'; return; }
+  try {
+    const r = await api("/deposit", { amount: amt });
+    out.innerHTML = `
+      <div class="pay-info">
+        <div class="row"><div class="lbl">Кошелёк проекта</div><div class="val">${r.wallet}</div></div>
+        <div class="row"><div class="lbl">Комментарий (обязательно!)</div><div class="val">${r.comment}</div></div>
+        <div class="row"><div class="lbl">Сумма</div><div class="val">${r.amount} TON</div></div>
+        <div class="pay-warn">⚠️ Отправьте точную сумму с указанным комментарием. После проверки админом баланс будет зачислен.</div>
+      </div>`;
+  } catch (e) {
+    out.innerHTML = `<div class="pay-err">❌ ${e.message}</div>`;
+  }
+}
+
+async function onWithdraw() {
+  const amt = parseFloat(document.getElementById("wdAmount").value);
+  const wallet = document.getElementById("wdWallet").value.trim();
+  const out = document.getElementById("wdResult");
+  if (!amt || amt <= 0) { out.innerHTML = '<div class="pay-err">Введите сумму больше 0</div>'; return; }
+  if (!wallet || wallet.length < 4) { out.innerHTML = '<div class="pay-err">Укажите кошелёк</div>'; return; }
+  try {
+    const r = await api("/withdraw", { amount: amt, wallet });
+    out.innerHTML = `<div class="pay-ok">✅ Заявка #${r.withdrawalId} принята. Ожидайте подтверждения от администратора.</div>`;
+    document.getElementById("wdAmount").value = "";
+    await refresh();
+  } catch (e) {
+    out.innerHTML = `<div class="pay-err">❌ ${e.message}</div>`;
+  }
+}
+
+function paint() {
+  if (!state) return;
+  setHeader(state);
+  renderGrid();
+  renderRefClaim();
+  renderFriends();
+}
+
+async function refresh() {
+  state = await api("/sync", { startParam });
+  paint();
+}
+
+function openTab(name, btn) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+  document.getElementById(name).classList.add("active");
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  if (id === "referral") { updateRefUI(); renderFriendsList(); }
-};
-async function init() {
-  initGpuStates();
-  initGrid();
-  await syncWithBackend();
-  updateRefUI();
-  document.getElementById("loading").style.display = "none";
-  document.getElementById("app").style.display = "block";
 }
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-buy]");
+  if (t) { onBuy(parseInt(t.dataset.buy, 10)); return; }
+  const c = e.target.closest("[data-claim]");
+  if (c) { onClaim(parseInt(c.dataset.claim, 10)); return; }
+  const nav = e.target.closest(".nav-btn[data-tab]");
+  if (nav) { openTab(nav.dataset.tab, nav); }
+});
+document.getElementById("payBtn").onclick = onDeposit;
+document.getElementById("wdBtn").onclick = onWithdraw;
 document.getElementById("copyRefBtn").onclick = () => {
-  const link = document.getElementById("refLink").innerText;
-  navigator.clipboard.writeText(link);
-  tg.showAlert("📋 Реферальная ссылка скопирована!");
+  const txt = document.getElementById("refLink").innerText;
+  navigator.clipboard?.writeText(txt).then(() => showAlert("Ссылка скопирована"), () => {});
 };
-init();
-tg.MainButton.hide();
-tg.BackButton.hide();
+(async () => {
+  try {
+    await refresh();
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    timerHandle = setInterval(tickProgress, 500);
+  } catch (e) {
+    document.getElementById("loading").innerHTML =
+      `<div class="pay-err" style="margin:0 16px;">❌ ${e.message}<br><br>Откройте мини-приложение через бота @${"Gputonminer_bot"}.</div>`;
+  }
+})();
 </script>
 </body>
 </html>
