@@ -61,6 +61,17 @@
   .deposit-box input { width: 100%; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; }
   .deposit-box input:focus { border-color: #00D4FF; }
   .deposit-box .pay-btn { margin-top: 12px; background: linear-gradient(95deg, #00D4FF, #0066FF); color: #0B0E1A; }
+
+  .withdraw-box { margin: 16px; padding: 18px; border-radius: 24px; background: linear-gradient(135deg, #1A1F35, #11152A); border: 1px solid rgba(255, 179, 71, 0.35); }
+  .withdraw-box h3 { margin-bottom: 12px; font-size: 16px; color: #FFB347; }
+  .withdraw-box label { display: block; font-size: 11px; color: #8EA3D4; margin: 10px 0 6px; }
+  .withdraw-box input { width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255, 179, 71, 0.3); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; }
+  .withdraw-box input:focus { border-color: #FFB347; }
+  .withdraw-box .pay-btn.withdraw-btn { margin-top: 14px; background: linear-gradient(95deg, #FFB347, #FF8C00); color: #0B0E1A; width: 100%; }
+  .withdraw-min { margin-top: 8px; font-size: 11px; color: #6B7CA8; text-align: center; }
+  .withdraw-result { margin-top: 14px; padding: 12px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+  .withdraw-result.ok  { background: rgba(0, 168, 107, 0.15); color: #00E18A; border: 1px solid rgba(0, 168, 107, 0.4); }
+  .withdraw-result.err { background: rgba(255, 71, 87, 0.15);  color: #FF6B7A; border: 1px solid rgba(255, 71, 87, 0.4); }
   .pay-info { background: rgba(0,0,0,0.4); border-radius: 14px; padding: 12px; margin-top: 14px; font-size: 12px; word-break: break-all; }
   .pay-info .row { margin-bottom: 8px; }
   .pay-info .lbl { color: #8EA3D4; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
@@ -140,6 +151,17 @@
     <input id="depositAmount" type="number" min="0.1" step="0.1" placeholder="Например, 5">
     <button class="pay-btn" id="payBtn" onclick="createDeposit()">💎 Оплатить</button>
     <div id="payResult"></div>
+  </div>
+
+  <div class="withdraw-box">
+    <h3>🏦 Вывод TON</h3>
+    <label>Сумма (TON)</label>
+    <input id="withdrawAmount" type="number" min="0.1" step="0.1" placeholder="Например, 5">
+    <label>Ваш TON-кошелёк (получатель)</label>
+    <input id="withdrawWallet" type="text" placeholder="UQC... или EQC...">
+    <button class="pay-btn withdraw-btn" id="withdrawBtn" onclick="createWithdrawal()">💸 Вывести</button>
+    <div class="withdraw-min">Заявка обрабатывается администратором вручную</div>
+    <div id="withdrawResult"></div>
   </div>
 </div>
 
@@ -430,6 +452,73 @@ function copyText(text) {
   navigator.clipboard.writeText(text);
   tg.showAlert("📋 Скопировано");
 }
+
+// ============ ВЫВОД TON ============
+async function createWithdrawal() {
+  const amtEl = document.getElementById('withdrawAmount');
+  const walEl = document.getElementById('withdrawWallet');
+  const btn   = document.getElementById('withdrawBtn');
+  const out   = document.getElementById('withdrawResult');
+
+  out.className = '';
+  out.textContent = '';
+
+  const amount = Number(amtEl.value);
+  const wallet = (walEl.value || '').trim();
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    out.className = 'withdraw-result err';
+    out.textContent = 'Введите корректную сумму';
+    return;
+  }
+  if (wallet.length < 10) {
+    out.className = 'withdraw-result err';
+    out.textContent = 'Введите корректный TON-кошелёк';
+    return;
+  }
+  if (playerData.ton < amount) {
+    out.className = 'withdraw-result err';
+    out.textContent = `Недостаточно TON. Баланс: ${playerData.ton.toFixed(4)}`;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Отправка...";
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "createWithdrawal",
+        user_id: userId.toString(),
+        name: user?.first_name || "Игрок",
+        amount: amount,
+        wallet: wallet
+      })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Ошибка");
+
+    // Списываем сумму локально, чтобы UI обновился сразу
+    playerData.ton = Math.max(0, playerData.ton - amount);
+    updateUI();
+    saveToBackend();
+
+    amtEl.value = '';
+    walEl.value = '';
+    out.className = 'withdraw-result ok';
+    out.innerHTML =
+      `✅ Заявка #${data.withdrawal.id} принята.<br>` +
+      `Сумма: <b>${amount} TON</b><br>` +
+      `После проверки администратор отправит TON на указанный кошелёк.`;
+  } catch (e) {
+    out.className = 'withdraw-result err';
+    out.textContent = e.message || "Не удалось создать заявку";
+  }
+  btn.disabled = false;
+  btn.innerHTML = "💸 Вывести";
+}
+
 // ============ РЕФЕРАЛЬНАЯ КАРТА ============
 function getRefRewards() {
   if (playerData.friends >= 50) return { ton: 10, gpu: 50 };
