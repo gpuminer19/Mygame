@@ -186,8 +186,31 @@ tg.expand();
 let user = tg.initDataUnsafe?.user;
 let userId = user?.id || "test_" + Math.floor(Math.random() * 10000);
 
+// Извлекаем реферера из start_param (Telegram) или ?startapp=ref_xxx / #tgWebAppStartParam=ref_xxx
+function extractReferrerId() {
+  let raw = tg.initDataUnsafe?.start_param || "";
+  if (!raw) {
+    try {
+      const url = new URL(window.location.href);
+      raw = url.searchParams.get("startapp") || url.searchParams.get("start") || "";
+      if (!raw && window.location.hash) {
+        const m = window.location.hash.match(/tgWebAppStartParam=([^&]+)/);
+        if (m) raw = decodeURIComponent(m[1]);
+      }
+    } catch(e) {}
+  }
+  if (!raw) return null;
+  const m = String(raw).match(/^ref_?(.+)$/i);
+  const refId = m ? m[1] : raw;
+  // нельзя пригласить самого себя
+  if (!refId || refId === userId.toString()) return null;
+  return refId;
+}
+
 let playerData = {
-  ton: 5.0, gpuTokens: 0, friends: 0, referrerId: null, invitedFriends: []
+  ton: 5.0, gpuTokens: 0, friends: 0,
+  referrerId: extractReferrerId(),
+  invitedFriends: []
 };
 
 const gpuTemplates = [
